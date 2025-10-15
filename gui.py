@@ -149,7 +149,7 @@ class FordFulkersonGUI:
         self.btn_reiniciar.config(state='disabled')
 
     def generar_grafo_aleatorio(self):
-        """Genera un grafo con aristas aleatorias, asegura conectividad y prepara la GUI."""
+        """Genera un Grafo Acíclico Dirigido (DAG) aleatorio, asegurando conectividad."""
         self.slider_nodos.config(from_=8, to=16)
         if not (8 <= self.n_nodos.get() <= 16):
             self.n_nodos.set(8)
@@ -159,27 +159,68 @@ class FordFulkersonGUI:
         self.grafo_obj.inicializar(n)
         self._reset_estado()
         
-        self.status_label.config(text="Generando grafo...")
-        nodos = list(range(n))
-        random.shuffle(nodos)
+        self.status_label.config(text="Generando grafo DAG...")
         
-        # Asegura conectividad básica con un camino (ciclo o simple)
+        # 1. Crear un orden topológico aleatorio para los nodos.
+        # Esto es la clave para garantizar que sea un DAG.
+        nodos_ordenados = list(range(n))
+        random.shuffle(nodos_ordenados)
+        
+        # 2. Asegurar conectividad básica creando un camino a través del orden topológico.
+        # Esto garantiza que el grafo no esté desconectado.
         for i in range(n - 1):
-            u, v = nodos[i], nodos[i+1]
-            if random.random() > 0.5: u, v = v, u
+            u, v = nodos_ordenados[i], nodos_ordenados[i+1]
             self.grafo_obj.agregar_arista(u, v, random.randint(10, 30))
             
-        # Añade aristas extra aleatorias
+        # 3. Añade aristas extra aleatorias respetando el orden topológico.
+        # Una arista (u, v) solo se crea si u aparece antes que v en nodos_ordenados.
         num_aristas_extra = int(n * 1.5)
+        pos_nodos = {nodo: i for i, nodo in enumerate(nodos_ordenados)} # Para búsquedas rápidas
+
         for _ in range(num_aristas_extra):
-            u, v = random.sample(nodos, 2)
-            if not any(a[0] == u and a[1] == v for a in self.grafo_obj.aristas): 
+            u, v = random.sample(range(n), 2)
+            
+            # Solo añadir arista si va "hacia adelante" en el orden y no existe ya.
+            if pos_nodos[u] < pos_nodos[v] and not any(a[0] == u and a[1] == v for a in self.grafo_obj.aristas): 
                 self.grafo_obj.agregar_arista(u, v, random.randint(5, 20))
                 
         self.grafo_obj.crear_grafo_networkx()
         self.actualizar_layout_y_dibujar()
         
-        self.status_label.config(text="Grafo generado. Selecciona fuentes y sumideros.")
+        self.status_label.config(text="Grafo DAG generado. Selecciona fuentes y sumideros.")
+
+    def validar_y_corregir_direccion_flujo(self):
+        """
+        Antes de ejecutar, revisa las aristas de fuentes/sumideros.
+        - Invierte aristas que entran a una fuente.
+        - Invierte aristas que salen de un sumidero.
+        Esto se hace para cumplir la lógica de flujo.
+        """
+        if not self.grafo_obj: return
+
+        aristas_a_revisar = list(self.grafo_obj.grafo_nx.edges())
+        aristas_invertidas = 0
+
+        for u, v in aristas_a_revisar:
+            capacidad = self.grafo_obj.capacidad[u][v]
+
+            # Caso 1: Arista entrando a una fuente (debe salir)
+            if v in self.fuentes and u not in self.fuentes:
+                self.grafo_obj.remover_arista(u, v)
+                self.grafo_obj.agregar_arista(v, u, capacidad)
+                aristas_invertidas += 1
+
+            # Caso 2: Arista saliendo de un sumidero (debe entrar)
+            if u in self.sumideros and v not in self.sumideros:
+                self.grafo_obj.remover_arista(u, v)
+                self.grafo_obj.agregar_arista(v, u, capacidad)
+                aristas_invertidas += 1
+        
+        if aristas_invertidas > 0:
+            messagebox.showinfo(
+                "Ajuste Automático",
+                f"Se invirtieron {aristas_invertidas} arista(s) para asegurar la dirección correcta del flujo desde las fuentes hacia los sumideros."
+            )
 
     def iniciar_modo_manual(self):
         # Lienzo vacío para modo manual
@@ -266,6 +307,7 @@ class FordFulkersonGUI:
         self.btn_add_arista.config(state='disabled')
         self.btn_del_arista.config(state='disabled')
         self.btn_cargar_archivo.config(state='disabled')
+
         self.modo_seleccion = None
         self.primer_nodo_arista = None
 
@@ -390,8 +432,12 @@ class FordFulkersonGUI:
         if not self.fuentes or not self.sumideros: 
             messagebox.showerror("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero.")
             return
+        
+        self.validar_y_corregir_direccion_flujo()
             
         self._bloquear_edicion()
+        self.btn_sel_fuentes.config(state='disabled')
+        self.btn_sel_sumideros.config(state='disabled')
         
         # Si hay más de una fuente o un sumidero, se abre el cuadro de diálogo para obtener las capacidades
         if len(self.fuentes) > 1 or len(self.sumideros) > 1: 
