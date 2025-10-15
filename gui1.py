@@ -98,6 +98,10 @@ class FordFulkersonGUI:
         self.btn_reiniciar.config(state='disabled')
 
     def generar_grafo_aleatorio(self):
+        self.slider_nodos.config(from_=8, to=16)
+        if not (8 <= self.n_nodos.get() <= 16):
+            self.n_nodos.set(8)
+        
         n = self.n_nodos.get(); self.grafo_obj = FlujoMaximoGrafico(); self.grafo_obj.inicializar(n); self._reset_estado()
         self.status_label.config(text="Generando grafo..."); nodos = list(range(n)); random.shuffle(nodos)
         for i in range(n - 1):
@@ -113,20 +117,50 @@ class FordFulkersonGUI:
         self.status_label.config(text="Grafo generado. Selecciona fuentes y sumideros.")
 
     def iniciar_modo_manual(self):
+        self.slider_nodos.config(from_=8, to=16)
+        if not (8 <= self.n_nodos.get() <= 16):
+            self.n_nodos.set(8)
+        
         n = self.n_nodos.get(); self.grafo_obj = FlujoMaximoGrafico(); self.grafo_obj.inicializar(n); self._reset_estado(modo_manual=True)
         self.status_label.config(text="Modo Manual: Añade o elimina aristas."); self.grafo_obj.crear_grafo_networkx()
         self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx); self.dibujar_grafo()
 
     def cargar_desde_archivo(self):
         filepath = filedialog.askopenfilename(title="Seleccionar archivo de grafo", filetypes=[("Archivos de Texto", "*.txt"), ("Todos los archivos", "*.*")])
-        if not filepath: return
+        if not filepath: 
+            return
+
         try:
-            self.grafo_obj = FlujoMaximoGrafico(); self.grafo_obj.cargar_desde_archivo(filepath); self._reset_estado()
-            self.n_nodos.set(self.grafo_obj.n); self.grafo_obj.crear_grafo_networkx(); self.actualizar_layout_y_dibujar()
-            self.btn_sel_fuentes.config(state='normal'); self.btn_sel_sumideros.config(state='normal'); self.btn_ejecutar.config(state='normal')
+            with open(filepath, 'r') as f:
+                primera_linea = f.readline()
+                if not primera_linea:
+                    messagebox.showerror("Error de Archivo", "El archivo está vacío.")
+                    return
+                n, m = map(int, primera_linea.strip().split())
+            
+            if not (8 <= n <= 16):
+                messagebox.showerror("Error de Rango de Nodos", f"El número de nodos debe estar entre 8 y 16.\n\nEl archivo seleccionado tiene {n} nodos.")
+                return
+        except Exception as e:
+            messagebox.showerror("Error de Formato", f"No se pudo leer el número de nodos del archivo. Asegúrate de que el formato sea correcto.\n\nError: {e}")
+            return
+
+        try:
+            self.slider_nodos.config(from_=8, to=16)
+            self.grafo_obj = FlujoMaximoGrafico()
+            self.grafo_obj.cargar_desde_archivo(filepath)
+            self._reset_estado()
+            self.n_nodos.set(self.grafo_obj.n)
+            
+            self.grafo_obj.crear_grafo_networkx()
+            self.actualizar_layout_y_dibujar()
+            self.btn_sel_fuentes.config(state='normal')
+            self.btn_sel_sumideros.config(state='normal')
+            self.btn_ejecutar.config(state='normal')
             self.status_label.config(text=f"Grafo cargado desde {filepath.split('/')[-1]}.")
         except Exception as e:
-            messagebox.showerror("Error de Archivo", f"No se pudo leer o procesar el archivo:\n{e}"); self.reiniciar_aplicacion()
+            messagebox.showerror("Error de Procesamiento", f"No se pudo procesar el archivo de grafo:\n{e}")
+            self.reiniciar_aplicacion()
 
     def actualizar_layout_y_dibujar(self):
         if not self.grafo_obj: return
@@ -244,18 +278,20 @@ class FordFulkersonGUI:
         self.ax.set_title(titulo, fontsize=16)
 
         camino = paso_actual.get('camino', [])
-        nodos_camino = {n for a in camino for n in a}
+        nodos_camino_set = {n for a in camino for n in a}
         
         node_colors, node_sizes, labels = [], [], {}
         nodos_a_dibujar = list(self.grafo_obj.grafo_nx.nodes())
 
         for nodo in nodos_a_dibujar:
             labels[nodo] = str(nodo)
+            # Nodos especiales y seleccionados
             if nodo == self.grafo_obj.super_fuente: node_colors.append('gold'); node_sizes.append(1200); labels[nodo] = 'S*'
             elif nodo == self.grafo_obj.super_sumidero: node_colors.append('dimgray'); node_sizes.append(1200); labels[nodo] = 'T*'
             elif nodo in self.fuentes: node_colors.append('lightgreen'); node_sizes.append(1000)
             elif nodo in self.sumideros: node_colors.append('lightcoral'); node_sizes.append(1000)
-            elif nodo in nodos_camino: node_colors.append('yellow'); node_sizes.append(800)
+            # Nodos durante el algoritmo
+            elif paso_idx is not None and nodo in nodos_camino_set: node_colors.append('yellow'); node_sizes.append(800)
             else: node_colors.append('lightblue'); node_sizes.append(800)
 
         nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodos_a_dibujar, node_color=node_colors, node_size=node_sizes)
@@ -271,6 +307,7 @@ class FordFulkersonGUI:
             edge_widths = [1.5] * self.grafo_obj.grafo_nx.number_of_edges()
         
         elif paso_actual.get('tipo') == 'corte_minimo':
+            # --- Lógica de Corte Mínimo (sin cambios) ---
             conjunto_s = paso_actual.get('conjunto_s', set())
             nodos_originales = range(self.grafo_obj.n)
             node_colors_corte = ['lightgreen' if i in conjunto_s else 'lightcoral' for i in nodos_originales]
@@ -292,6 +329,7 @@ class FordFulkersonGUI:
             self.ax.legend(handles=legend_elements, loc='upper right')
         
         else: # Modo Algoritmo (tipo 'flujo')
+            # --- Lógica de coloreado de aristas (sin cambios) ---
             flujo_extendido = paso_actual.get('flujo_extendido', [])
             cap_extendida = paso_actual.get('cap_extendida', [])
             for u, v in self.grafo_obj.grafo_nx.edges():
@@ -299,14 +337,19 @@ class FordFulkersonGUI:
                 c = cap_extendida[u][v] if u < len(cap_extendida) and v < len(cap_extendida[u]) else 0
                 cap_str = 'inf' if c == float('inf') else int(c)
                 edge_labels[(u,v)] = f"{int(f)}/{cap_str}"
-                if (u,v) in camino: edge_colors.append('red'); edge_widths.append(4)
-                elif (v,u) in camino: edge_colors.append('orange'); edge_widths.append(4) # Arista inversa
+                
+                # Chequea si es parte del camino de aumento (visible)
+                es_camino_adelante = (u,v) in camino
+                es_camino_atras = (v,u) in camino
+                
+                if es_camino_adelante: edge_colors.append('red'); edge_widths.append(4)
+                elif es_camino_atras: edge_colors.append('orange'); edge_widths.append(4)
                 elif f > 0:
                     if f >= c: edge_colors.append('darkred'); edge_widths.append(3)
                     else: edge_colors.append('blue'); edge_widths.append(3)
                 else: edge_colors.append('gray'); edge_widths.append(1.5)
             
-            # DIBUJO DE ETIQUETAS DE CAMINO DE AUMENTO
+            # --- DIBUJO DE ETIQUETAS DE CAMINO (sin cambios) ---
             etiquetas_camino = paso_actual.get('etiquetas', {})
             if etiquetas_camino:
                 pos_vals = self.grafo_obj.pos.values()
@@ -315,13 +358,23 @@ class FordFulkersonGUI:
                     if graph_height == 0: graph_height = 1 
                     vertical_offset = graph_height * 0.07
                 else: vertical_offset = 0.25
-                
                 pos_node_labels = {node: (x, y + vertical_offset) for node, (x, y) in self.grafo_obj.pos.items()}
                 formatted_labels = {node: f"({parent}, {delta})" for node, (parent, delta) in etiquetas_camino.items()}
-                
                 nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_node_labels, labels=formatted_labels, 
                                         font_size=9, font_color='purple', font_weight='bold', ax=self.ax)
 
+            ## --- LEYENDA PARA EL ALGORITMO --- ##
+            legend_elements = [
+                plt.Line2D([0], [0], color='red', lw=4, label='Camino de Aumento (Adelante)'),
+                plt.Line2D([0], [0], color='orange', lw=4, label='Camino de Aumento (Atrás)'),
+                plt.Line2D([0], [0], color='darkred', lw=3, label='Arista Saturada (Flujo = Cap.)'),
+                plt.Line2D([0], [0], color='blue', lw=3, label='Arista con Flujo'),
+                plt.Line2D([0], [0], color='gray', lw=1.5, label='Arista sin Flujo'),
+                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='Nodo en Camino Actual')
+            ]
+            self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small')
+
+        # --- DIBUJO FINAL DE ARISTAS ---
         if paso_actual.get('tipo') != 'corte_minimo':
             nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=node_sizes)
             nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, edge_labels=edge_labels, ax=self.ax, font_size=9, bbox=dict(facecolor="white", alpha=0.7, edgecolor='none', pad=0.1))
@@ -387,21 +440,6 @@ class FlujoMaximoGrafico:
             self.super_sumidero = idx; self.grafo_nx.add_node(self.super_sumidero)
             for s in sumideros: self.grafo_nx.add_edge(s, self.super_sumidero)
 
-    def _dfs(self, u, sumidero, padre, visitado, flujo, capacidad):
-        visitado[u] = True; n_extendido = len(capacidad)
-        if u == sumidero: return True
-        # Búsqueda en aristas hacia adelante
-        for v in range(n_extendido):
-            if not visitado[v] and capacidad[u][v] - flujo[u][v] > 0:
-                padre[v] = u
-                if self._dfs(v, sumidero, padre, visitado, flujo, capacidad): return True
-        # Búsqueda en aristas hacia atrás (flujo de retorno)
-        for v in range(n_extendido):
-            if not visitado[v] and flujo[v][u] > 0:
-                padre[v] = - (u + 1) # Usamos negativo para indicar arista inversa
-                if self._dfs(v, sumidero, padre, visitado, flujo, capacidad): return True
-        return False
-        
     def calcular_pasos_ford_fulkerson(self):
         fuente_calculo = self.super_fuente if self.super_fuente is not None else (self.fuentes[0] if self.fuentes else -1)
         sumidero_calculo = self.super_sumidero if self.super_sumidero is not None else (self.sumideros[0] if self.sumideros else -1)
@@ -423,7 +461,6 @@ class FlujoMaximoGrafico:
         guardar_paso('Grafo Inicial')
         while True:
             padre, visitado = [-1] * n_actual, [False] * n_actual
-            # Usaremos BFS para encontrar el camino más corto (Edmonds-Karp)
             cola = deque([fuente_calculo])
             visitado[fuente_calculo] = True
             path_found = False
@@ -432,35 +469,25 @@ class FlujoMaximoGrafico:
                 if u == sumidero_calculo:
                     path_found = True
                     break
-                # Aristas hacia adelante
                 for v in range(n_actual):
                     if not visitado[v] and cap_extendida[u][v] - flujo_extendido[u][v] > 0:
-                        visitado[v] = True
-                        padre[v] = u
-                        cola.append(v)
-                # Aristas hacia atrás
+                        visitado[v] = True; padre[v] = u; cola.append(v)
                 for v in range(n_actual):
                     if not visitado[v] and flujo_extendido[v][u] > 0:
-                        visitado[v] = True
-                        padre[v] = -(u + 1)
-                        cola.append(v)
+                        visitado[v] = True; padre[v] = -(u + 1); cola.append(v)
             
             if not path_found: break
             
-            # CÁLCULO DE ETIQUETAS Y CAMINO
             camino_visible, etiquetas_paso = [], {}
-            etiquetas_paso[fuente_calculo] = ('-', '∞') # <-- MODIFICACIÓN 1
+            etiquetas_paso[fuente_calculo] = ('-', '∞')
             
             path_reconstruido = []
             nodo_actual = sumidero_calculo
             while nodo_actual != fuente_calculo:
                 padre_val = padre[nodo_actual]
-                if padre_val >= 0: # Arista hacia adelante
-                    padre_ahora = padre_val
-                    path_reconstruido.insert(0, (padre_ahora, nodo_actual, '+'))
-                else: # Arista hacia atrás
-                    padre_ahora = -padre_val - 1
-                    path_reconstruido.insert(0, (padre_ahora, nodo_actual, '-'))
+                padre_ahora = padre_val if padre_val >= 0 else -padre_val - 1
+                direction = '+' if padre_val >= 0 else '-'
+                path_reconstruido.insert(0, (padre_ahora, nodo_actual, direction))
                 nodo_actual = padre_ahora
             
             minimo_camino = float('inf')
@@ -468,18 +495,13 @@ class FlujoMaximoGrafico:
                 if direction == '+':
                     cap_res = cap_extendida[u][v] - flujo_extendido[u][v]
                     minimo_camino = min(minimo_camino, cap_res)
-                    # <-- MODIFICACIÓN 2: Etiqueta especial para la primera fuente real
-                    if u == fuente_calculo:
-                        etiquetas_paso[v] = ("S+", round(minimo_camino))
-                    else:
-                        etiquetas_paso[v] = (f"{u}+", round(minimo_camino))
+                    etiquetas_paso[v] = (f'S+', round(minimo_camino)) if u == fuente_calculo else (f"{u}+", round(minimo_camino))
                     
-                    # <-- MODIFICACIÓN 3: Colorear camino desde/hacia super-nodos
                     if (u < self.n and v < self.n) or \
                        (u < self.n and v == self.super_sumidero) or \
                        (u == self.super_fuente and v < self.n):
                         camino_visible.append((u,v))
-                else: # '-'
+                else:
                     cap_res = flujo_extendido[v][u]
                     minimo_camino = min(minimo_camino, cap_res)
                     etiquetas_paso[v] = (f"{u}-", round(minimo_camino))
@@ -488,12 +510,9 @@ class FlujoMaximoGrafico:
 
             guardar_paso(f'Iteración {iteracion} - Camino Encontrado', camino_visible, etiquetas_paso)
             
-            # APLICAR FLUJO
             for u, v, direction in path_reconstruido:
-                if direction == '+':
-                    flujo_extendido[u][v] += minimo_camino
-                else:
-                    flujo_extendido[v][u] -= minimo_camino
+                if direction == '+': flujo_extendido[u][v] += minimo_camino
+                else: flujo_extendido[v][u] -= minimo_camino
             
             total += minimo_camino
             guardar_paso(f'Iteración {iteracion} - Flujo Aplicado (Total: {round(total,2)})')
@@ -501,7 +520,6 @@ class FlujoMaximoGrafico:
             
         guardar_paso(f'RESULTADO FINAL - Flujo Máximo: {round(total,2)}')
         
-        # CORTE MÍNIMO
         visitado = [False] * n_actual; cola = deque([fuente_calculo]); visitado[fuente_calculo] = True
         while cola:
             u = cola.popleft()
@@ -517,7 +535,6 @@ class FlujoMaximoGrafico:
                      aristas_corte.append((u, v)); capacidad_corte += cap_extendida[u][v]
         pasos.append({'tipo': 'corte_minimo', 'titulo': f'CORTE MÍNIMO (Capacidad: {round(capacidad_corte,2)})', 'conjunto_s': conjunto_s, 'aristas_corte': aristas_corte})
         return pasos, total
-
 
 # --- PUNTO DE ENTRADA DE LA APLICACIÓN ---
 if __name__ == "__main__":
