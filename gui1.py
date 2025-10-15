@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from tkinter.simpledialog import askinteger
 import random
 import copy
@@ -72,6 +72,10 @@ class FordFulkersonGUI:
         ttk.Label(creacion_frame, textvariable=self.n_nodos).pack(side=tk.LEFT, padx=5)
         self.btn_gen_aleatorio = ttk.Button(creacion_frame, text="Generar Aleatorio", command=self.generar_grafo_aleatorio); self.btn_gen_aleatorio.pack(side=tk.LEFT, padx=(10,5), pady=2)
         self.btn_crear_manual = ttk.Button(creacion_frame, text="Crear Lienzo Manual", command=self.iniciar_modo_manual); self.btn_crear_manual.pack(side=tk.LEFT, padx=5, pady=2)
+        
+        # --- NUEVO BOTÓN ---
+        self.btn_cargar_archivo = ttk.Button(creacion_frame, text="Cargar Archivo...", command=self.cargar_desde_archivo); self.btn_cargar_archivo.pack(side=tk.LEFT, padx=5, pady=2)
+
         edicion_frame = ttk.LabelFrame(control_frame, text="2. Edición Manual", padding=5); edicion_frame.pack(side=tk.LEFT, padx=10, fill='y')
         self.btn_add_arista = ttk.Button(edicion_frame, text="Añadir Arista", command=self.activar_modo_add_arista, state='disabled'); self.btn_add_arista.pack(side=tk.LEFT, padx=5, pady=2)
         self.btn_del_arista = ttk.Button(edicion_frame, text="Eliminar Arista", command=self.activar_modo_del_arista, state='disabled'); self.btn_del_arista.pack(side=tk.LEFT, padx=5, pady=2)
@@ -99,6 +103,7 @@ class FordFulkersonGUI:
         self.btn_add_arista.config(state='normal' if modo_manual else 'disabled')
         self.btn_del_arista.config(state='normal' if modo_manual else 'disabled')
         self.btn_reiniciar.config(state='disabled')
+        self.btn_cargar_archivo.config(state='normal')
 
     def generar_grafo_aleatorio(self):
         n = self.n_nodos.get(); self.grafo_obj = FlujoMaximoGrafico(); self.grafo_obj.inicializar(n)
@@ -125,6 +130,27 @@ class FordFulkersonGUI:
         self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx)
         self.dibujar_grafo()
 
+    # --- NUEVA FUNCIÓN PARA CARGAR ARCHIVO ---
+    def cargar_desde_archivo(self):
+        filepath = filedialog.askopenfilename(
+            title="Seleccionar archivo de grafo",
+            filetypes=[("Archivos de Texto", "*.txt"), ("Todos los archivos", "*.*")]
+        )
+        if not filepath:
+            return
+
+        try:
+            self.grafo_obj = FlujoMaximoGrafico()
+            self.grafo_obj.cargar_desde_archivo(filepath)
+            self._reset_estado()
+            self.grafo_obj.crear_grafo_networkx()
+            self.actualizar_layout_y_dibujar()
+            self.btn_sel_fuentes.config(state='normal'); self.btn_sel_sumideros.config(state='normal'); self.btn_ejecutar.config(state='normal')
+            self.status_label.config(text=f"Grafo cargado desde {filepath.split('/')[-1]}.")
+        except Exception as e:
+            messagebox.showerror("Error de Archivo", f"No se pudo leer o procesar el archivo:\n{e}")
+            self.reiniciar_aplicacion()
+
     def actualizar_layout_y_dibujar(self):
         if not self.grafo_obj: return
         self.grafo_obj.preparar_para_multifuente(self.fuentes, self.sumideros)
@@ -134,6 +160,7 @@ class FordFulkersonGUI:
     def _bloquear_edicion(self):
         self.btn_gen_aleatorio.config(state='disabled'); self.btn_crear_manual.config(state='disabled')
         self.btn_add_arista.config(state='disabled'); self.btn_del_arista.config(state='disabled')
+        self.btn_cargar_archivo.config(state='disabled')
         self.modo_seleccion = None; self.primer_nodo_arista = None
 
     def activar_modo_fuente(self): self._bloquear_edicion(); self.modo_seleccion = 'fuente'; self.status_label.config(text="MODO SELECCIÓN DE FUENTES: Haz clic en los nodos.")
@@ -183,23 +210,16 @@ class FordFulkersonGUI:
         self.dibujar_grafo(paso_idx=self.current_step_index)
         
     def ejecutar_algoritmo(self):
-        if not self.grafo_obj or not self.grafo_obj.grafo_nx.nodes():
-            messagebox.showerror("Error", "Primero debe generar un grafo."); return
-
-        # --- LÓGICA DE VALIDACIÓN Y RESETEO CORREGIDA ---
+        if not self.grafo_obj or not self.grafo_obj.grafo_nx.nodes(): messagebox.showerror("Error", "Primero debe generar un grafo."); return
         if not nx.is_weakly_connected(self.grafo_obj.grafo_nx):
-            messagebox.showerror("Error de Grafo", "El grafo no está conectado. Por favor, añada aristas para conectar todos los nodos.")
+            messagebox.showerror("Error de Grafo", "El grafo no está conectado.")
             self.fuentes, self.sumideros = [], []
             self._reset_estado(modo_manual=True) 
-            # Recalcula el layout circular y redibuja
             self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx)
             self.dibujar_grafo()
             self.status_label.config(text="Error: Grafo no conectado. Se reinició la selección.")
             return
-
-        if not self.fuentes or not self.sumideros:
-            messagebox.showerror("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero."); return
-            
+        if not self.fuentes or not self.sumideros: messagebox.showerror("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero."); return
         self._bloquear_edicion()
         if len(self.fuentes) > 1 or len(self.sumideros) > 1: self.abrir_dialogo_capacidades()
         else: self.ejecutar_con_capacidades()
@@ -234,7 +254,6 @@ class FordFulkersonGUI:
         self.status_label.config(text="Limpiando y calculando..."); 
         self.actualizar_layout_y_dibujar()
         self.grafo_obj.remover_aristas_internas(self.fuentes, self.sumideros)
-        self.grafo_obj.remover_aristas_de_retroceso()
         self.grafo_obj.preparar_para_multifuente(self.fuentes, self.sumideros, cap_fuentes, cap_sumideros)
         self.actualizar_layout_y_dibujar()
         self.pasos, flujo_maximo = self.grafo_obj.calcular_pasos_ford_fulkerson(); self.current_step_index = 0
@@ -285,11 +304,20 @@ class FordFulkersonGUI:
         self.status_label.config(text="Bienvenido. Genere un grafo para comenzar.")
         self.dibujar_grafo()
 
-# --- CLASE DE LÓGICA DEL GRAFO (SIN CAMBIOS) ---
+# --- CLASE DE LÓGICA DEL GRAFO (CON MÉTODO NUEVO) ---
 class FlujoMaximoGrafico:
-    # (El código de esta clase no cambia)
     def __init__(self): self.n = 0; self.capacidad, self.aristas = [], []; self.grafo_nx, self.pos = None, None; self.fuentes, self.sumideros, self.super_fuente, self.super_sumidero = [], [], None, None; self.cap_fuentes, self.cap_sumideros = {}, {}
     def inicializar(self, n): self.n = n; self.capacidad = [[0] * n for _ in range(n)]; self.aristas = []
+    
+    def cargar_desde_archivo(self, filepath):
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+            n, m = map(int, lines[0].strip().split())
+            self.inicializar(n)
+            for i in range(1, m + 1):
+                u, v, p = map(int, lines[i].strip().split())
+                self.agregar_arista(u, v, p)
+
     def agregar_arista(self, desde, hacia, capacidad):
         if 0 <= desde < self.n and 0 <= hacia < self.n:
             self.capacidad[desde][hacia] = capacidad; self.aristas.append((desde, hacia, capacidad))
@@ -308,14 +336,6 @@ class FlujoMaximoGrafico:
         if aristas_a_eliminar: print(f"Eliminando aristas internas: {aristas_a_eliminar}"); self.grafo_nx.remove_edges_from(aristas_a_eliminar)
         for u, v in aristas_a_eliminar:
             if u<self.n and v<self.n: self.capacidad[u][v] = 0; self.aristas = [a for a in self.aristas if a[:2] != (u,v)]
-    def remover_aristas_de_retroceso(self):
-        if not self.pos: return
-        aristas_a_revertir = [(u, v) for u, v in list(self.grafo_nx.edges()) if u < self.n and v < self.n and self.pos.get(u, (0,))[0] >= self.pos.get(v, (0,))[0]]
-        if aristas_a_revertir: print(f"Revirtiendo aristas de retroceso: {aristas_a_revertir}")
-        for u, v in aristas_a_revertir:
-            cap = self.capacidad[u][v]
-            self.remover_arista(u, v)
-            if not self.grafo_nx.has_edge(v, u): self.agregar_arista(v, u, cap)
     def preparar_para_multifuente(self, fuentes, sumideros, cap_fuentes={}, cap_sumideros={}):
         self.fuentes, self.sumideros, self.cap_fuentes, self.cap_sumideros = fuentes, sumideros, cap_fuentes, cap_sumideros
         self.super_fuente, self.super_sumidero = None, None; self.crear_grafo_networkx()
