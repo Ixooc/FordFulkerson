@@ -28,7 +28,12 @@ class FordFulkersonGUI:
         self.fuentes, self.sumideros = [], [] 
         
         self.modo_seleccion = None            
-        self.primer_nodo_arista = None        
+        self.primer_nodo_arista = None
+
+        self.btn_prev_paso = None
+        self.btn_next_paso = None
+        self.btn_ver_flujo = None
+        self.btn_ver_corte = None
 
         RESET_ICON_BASE64 = "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"
         
@@ -162,12 +167,26 @@ class FordFulkersonGUI:
         self.fig.patch.set_facecolor(bg_color)
         self.ax.set_facecolor(bg_color)
         
+        nav_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        nav_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=(0, 10))
+
+        self.btn_prev_paso = ctk.CTkButton(nav_frame, text="< Anterior", command=self.paso_anterior, state='disabled', width=100)
+        self.btn_prev_paso.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.btn_next_paso = ctk.CTkButton(nav_frame, text="Siguiente >", command=self.paso_siguiente, state='disabled', width=100)
+        self.btn_next_paso.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.btn_ver_corte = ctk.CTkButton(nav_frame, text="Ver Corte Mínimo", command=self.ir_al_corte, state='disabled')
+        self.btn_ver_corte.pack(side=tk.RIGHT, padx=5, pady=5)
+        self.btn_ver_flujo = ctk.CTkButton(nav_frame, text="Ver Flujo Máximo", command=self.ir_al_flujo, state='disabled')
+        self.btn_ver_flujo.pack(side=tk.RIGHT, padx=5, pady=5)
+
         self.canvas = FigureCanvasTkAgg(self.fig, master=parent)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=10, padx=10)
         
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
-    
+
     def _reset_estado(self):
         self.fuentes, self.sumideros, self.pasos, self.current_step_index = [], [], [], 0
         self.modo_seleccion, self.primer_nodo_arista = None, None
@@ -188,6 +207,14 @@ class FordFulkersonGUI:
         self.btn_del_arista.configure(state=step_2_3_state)
         
         self.btn_reiniciar.configure(state='disabled')
+
+        if self.btn_prev_paso:
+            self.btn_prev_paso.configure(state='disabled')
+            self.btn_next_paso.configure(state='disabled')
+
+            if self.btn_ver_flujo:
+                self.btn_ver_flujo.configure(state='disabled')
+                self.btn_ver_corte.configure(state='disabled')
 
     def generar_grafo_aleatorio(self):
         self.slider_nodos.configure(from_=8, to=16)
@@ -416,11 +443,42 @@ class FordFulkersonGUI:
             return
             
         if event.key == 'right': 
-            self.current_step_index = min(self.current_step_index + 1, len(self.pasos) - 1)
+            self.paso_siguiente()
         elif event.key == 'left': 
-            self.current_step_index = max(self.current_step_index - 1, 0)
-            
+            self.paso_anterior()
+
+    def paso_anterior(self):
+        if not self.pasos: return
+        self.current_step_index = max(self.current_step_index - 1, 0)
         self.dibujar_grafo(paso_idx=self.current_step_index)
+
+    def paso_siguiente(self):
+        if not self.pasos: return
+        self.current_step_index = min(self.current_step_index + 1, len(self.pasos) - 1)
+        self.dibujar_grafo(paso_idx=self.current_step_index)
+        
+    def ir_al_flujo(self):
+        if not self.pasos: return
+        flujo_final_idx = len(self.pasos) - 2
+        if flujo_final_idx >= 0:
+            self.current_step_index = flujo_final_idx
+            self.dibujar_grafo(paso_idx=self.current_step_index)
+
+    def ir_al_corte(self):
+        if not self.pasos: return
+        self.current_step_index = len(self.pasos) - 1
+        self.dibujar_grafo(paso_idx=self.current_step_index)
+
+    def _actualizar_botones_nav(self):
+        if not self.pasos:
+            self.btn_prev_paso.configure(state='disabled')
+            self.btn_next_paso.configure(state='disabled')
+            return
+
+        total_pasos = len(self.pasos)
+    
+        self.btn_prev_paso.configure(state='normal' if self.current_step_index > 0 else 'disabled')
+        self.btn_next_paso.configure(state='normal' if self.current_step_index < (total_pasos - 1) else 'disabled')
 
     def ejecutar_algoritmo(self):
         if not self.grafo_obj or not self.grafo_obj.grafo_nx.nodes(): 
@@ -433,7 +491,7 @@ class FordFulkersonGUI:
         if self.grafo_obj.n > 0 and not nx.is_weakly_connected(subgrafo_original):
             messagebox.showerror("Error de Grafo", "El grafo no está conectado.")
             self.fuentes, self.sumideros = [], []
-            self._reset_estado(modo_manual=True) 
+            self._reset_estado()
             self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx)
             self.dibujar_grafo()
             self.status_label.configure(text="Error: Grafo no conectado. Se reinició la selección.")
@@ -515,6 +573,9 @@ class FordFulkersonGUI:
         self.status_label.configure(text=f"¡Cálculo completo! Flujo Máximo: {flujo_maximo:.2f}. Usa las flechas.")
         self.btn_reiniciar.configure(state='normal')
         
+        self.btn_ver_flujo.configure(state='normal')
+        self.btn_ver_corte.configure(state='normal')
+        
     def reiniciar_aplicacion(self):
         self.grafo_obj = None
         self._reset_estado()
@@ -574,6 +635,10 @@ class FordFulkersonGUI:
         
         paso_actual = self.pasos[paso_idx] if paso_idx is not None and paso_idx < len(self.pasos) else {}
         titulo = paso_actual.get('titulo', "Selecciona Fuentes (Verde) y Sumideros (Rojo)")
+
+        if paso_idx is not None and self.pasos and paso_actual.get('tipo') != 'corte_minimo':
+            self.status_label.configure(text=f"Paso {paso_idx+1}/{len(self.pasos)}: {titulo}")
+
         self.ax.set_title(titulo, fontsize=14, color=text_color)
 
         camino = paso_actual.get('camino', [])
@@ -613,6 +678,14 @@ class FordFulkersonGUI:
         elif paso_actual.get('tipo') == 'corte_minimo':
             conjunto_s = paso_actual.get('conjunto_s', set())
             nodos_originales = range(self.grafo_obj.n)
+
+            aristas_corte_data = paso_actual.get('aristas_corte', []) 
+            aristas_corte_pares = set((u, v) for u, v, cap in aristas_corte_data)
+            
+            lista_aristas = list(self.grafo_obj.grafo_nx.edges())
+
+            edge_colors_corte = ['red' if (u, v) in aristas_corte_pares else edge_color_default for (u, v) in lista_aristas]
+            edge_widths_corte = [4 if (u, v) in aristas_corte_pares else 1 for (u, v) in lista_aristas]
             
             node_colors_corte = [node_color_fuente if i in conjunto_s else node_color_sumidero for i in nodos_originales]
             node_labels_corte = {i: f"({'S' if i in conjunto_s else 'T'})" for i in nodos_originales}
@@ -624,23 +697,42 @@ class FordFulkersonGUI:
             else: vertical_offset = 0.2
             pos_labels = {node: (x, y - vertical_offset) for node, (x, y) in self.grafo_obj.pos.items()}
             
-            aristas_corte = set(paso_actual.get('aristas_corte', []))
-            edge_colors_corte = ['red' if (u, v) in aristas_corte or (v,u) in aristas_corte else edge_color_default for u, v in self.grafo_obj.grafo_nx.edges()]
-            edge_widths_corte = [4 if (u, v) in aristas_corte or (v,u) in aristas_corte else 1 for u, v in self.grafo_obj.grafo_nx.edges()]
-            
             nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodos_originales, node_color=node_colors_corte, node_size=1000)
             
-            # --- INICIO DE LA CORRECCIÓN ---
-            # El argumento correcto es 'font_color', no 'color'
             nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', font_color=text_color)
-            # --- FIN DE LA CORRECCIÓN ---
             
-            nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors_corte, width=edge_widths_corte, arrows=True, arrowsize=20, node_size=1000)
+            edge_labels_corte = {}
+            for u, v, cap in aristas_corte_data:
+                if (u,v) in self.grafo_obj.grafo_nx.edges(): 
+                     cap_str = 'inf' if cap == float('inf') else int(cap)
+                     edge_labels_corte[(u, v)] = f"{cap_str}"
+            
+            nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
+                                   ax=self.ax, 
+                                   edgelist=lista_aristas,
+                                   edge_color=edge_colors_corte, 
+                                   width=edge_widths_corte, 
+                                   arrows=True, 
+                                   arrowsize=20, 
+                                   node_size=1000)
+            
+            nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
+                                         edge_labels=edge_labels_corte, 
+                                         ax=self.ax, font_size=9, 
+                                         bbox=dict(facecolor=bg_color, alpha=0.9, edgecolor='none', pad=0.1), 
+                                         font_color='red',
+                                         font_weight='bold',
+                                         label_pos=0.3)
             
             legend_elements = [plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_fuente, label='Conjunto S'), plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_sumidero, label='Conjunto T'), plt.Line2D([0], [0], color='red', lw=4, label='Arista de Corte')]
             
             leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor)
             for text in leg.get_texts(): text.set_color(text_color) 
+
+            flujo_max = paso_actual.get('flujo_maximo', 0)
+            cap_corte = sum(cap for u, v, cap in aristas_corte_data)
+            
+            self.status_label.configure(text=f"Resultado: Flujo Máx. ({flujo_max:.2f}) = Cap. Corte ({cap_corte:.2f})")
         
         else: 
             flujo_extendido = paso_actual.get('flujo_extendido', [])
@@ -696,7 +788,10 @@ class FordFulkersonGUI:
         if paso_actual.get('tipo') != 'corte_minimo':
             nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=node_sizes)
             nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, edge_labels=edge_labels, ax=self.ax, font_size=9, 
-                                          bbox=dict(facecolor=bg_color, alpha=0.7, edgecolor='none', pad=0.1), font_color=text_color)
+                                          bbox=dict(facecolor=bg_color, alpha=0.7, edgecolor='none', pad=0.1), font_color=text_color, label_pos=0.3)
             
         self.ax.axis('off')
         self.canvas.draw()
+
+        if hasattr(self, 'btn_prev_paso'): 
+            self._actualizar_botones_nav()

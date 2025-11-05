@@ -248,14 +248,25 @@ class FlujoMaximoGrafico:
                 elif not visitado[v] and flujo_extendido[v][u] > 0:
                     visitado[v] = True; cola.append(v)
                     
+        # ... (final del bucle while)
         conjunto_s = {i for i, v in enumerate(visitado) if v}
         aristas_corte, capacidad_corte = [], 0
         
         for u in conjunto_s:
             for v in range(n_actual):
-                if v not in conjunto_s and self.grafo_nx.has_edge(u,v) and cap_extendida[u][v] > 0:
-                    aristas_corte.append((u, v)); capacidad_corte += cap_extendida[u][v]
+                cap_arista = cap_extendida[u][v]
+                if v not in conjunto_s and self.grafo_nx.has_edge(u,v) and cap_arista > 0:
+                    aristas_corte.append((u, v, cap_arista))
+                    capacidad_corte += cap_arista
                     
-        pasos.append({'tipo': 'corte_minimo', 'titulo': f'CORTE MÍNIMO (Capacidad: {capacidad_corte})', 'conjunto_s': conjunto_s, 'aristas_corte': aristas_corte})
+        pasos.append({
+            'tipo': 'corte_minimo', 
+            # --- INICIO DE LA MODIFICACIÓN ---
+            'titulo': f'CORTE MÍNIMO ({capacidad_corte:.2f}) = Flujo Máximo ({total:.2f})', 
+            # --- FIN DE LA MODIFICACIÓN ---
+            'conjunto_s': conjunto_s, 
+            'aristas_corte': aristas_corte,
+            'flujo_maximo': total 
+        })
         
         return pasos, total
