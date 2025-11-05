@@ -1,7 +1,8 @@
 # Archivo encargado de la interfaz para el usuario (Graphical User Interface)
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import messagebox, filedialog
 from tkinter.simpledialog import askinteger
+import customtkinter as ctk  # Importamos customtkinter
 import random
 import matplotlib
 matplotlib.use('TkAgg') 
@@ -9,6 +10,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import networkx as nx
 import math
+from PIL import Image
+import io
+import base64
 
 # Importaciones de nuestros módulos locales
 from logic import FlujoMaximoGrafico
@@ -22,26 +26,30 @@ class FordFulkersonGUI:
         self.master.title("Aplicación del teorema de Flujo Máximo - Ford Fulkerson")
         self.master.geometry("1200x950")
         
-        self.grafo_obj = None                 # Instancia de FlujoMaximoGrafico
-        self.pasos, self.current_step_index = [], 0 # Historial de pasos del algoritmo
-        self.fuentes, self.sumideros = [], [] # Nodos seleccionados por el usuario
+        self.grafo_obj = None                 
+        self.pasos, self.current_step_index = [], 0 
+        self.fuentes, self.sumideros = [], [] 
         
-        # Interacción manueal
-        self.modo_seleccion = None            # Controla el modo actual: 'fuente', 'add_edge_1', etc.
-        self.primer_nodo_arista = None        # Almacena el nodo de inicio en edición de aristas
+        self.modo_seleccion = None            
+        self.primer_nodo_arista = None        
 
-        # --- Ícono de Reinicio (Se mantiene el Base64) ---
-        RESET_ICON_BASE64 = "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"
-        self.reset_icon_image = tk.PhotoImage(data=RESET_ICON_BASE64)
+        # --- Ícono de Reinicio ---
+        RESET_ICON_BASE64 = "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"
+        image_data = base64.b64decode(RESET_ICON_BASE64)
+        pil_image = Image.open(io.BytesIO(image_data))
+        
+        # Crea una CTkImage (esto elimina el UserWarning)
+        self.reset_icon_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(16, 16))
         
         self.crear_layout_principal()
     
     def crear_layout_principal(self):
         # Información superior
-        info_frame = ttk.Frame(self.master, padding="10")
-        info_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+        # Usamos CTkFrame en lugar de ttk.Frame
+        info_frame = ctk.CTkFrame(self.master, fg_color="transparent")
+        info_frame.pack(side=tk.TOP, fill=tk.X, padx=20, pady=(10, 5))
         
-        titulo_label = ttk.Label(info_frame, text="Diseño incremental de Redes Logísticas", font=("Helvetica", 16, "bold"))
+        titulo_label = ctk.CTkLabel(info_frame, text="Diseño incremental de Redes Logísticas", font=ctk.CTkFont(size=20, weight="bold"))
         titulo_label.pack()
         
         descripcion_text = (
@@ -52,12 +60,17 @@ class FordFulkersonGUI:
             "paquetes en cada etapa, considerando limitaciones de presupuesto e infraestructura. Esto requiere "
             "modelar la red como un grafo y aplicar algoritmos de máximo flujo en cada período."
         )
-        descripcion_label = ttk.Label(info_frame, text=descripcion_text, wraplength=1100, justify="center")
+        descripcion_label = ctk.CTkLabel(info_frame, text=descripcion_text, wraplength=1100, justify="center")
         descripcion_label.pack(pady=(5, 10))
 
         # Marco principal de simulación
-        simulacion_frame = ttk.LabelFrame(self.master, text="Simulación", padding="10")
-        simulacion_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Usamos CTkFrame. 'fg_color="transparent"' lo hace ver como un LabelFrame
+        simulacion_frame = ctk.CTkFrame(self.master) 
+        simulacion_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=20, pady=(5, 20))
+        
+        # Etiqueta para el título del marco
+        simulacion_titulo = ctk.CTkLabel(simulacion_frame, text="Simulación", font=ctk.CTkFont(size=14, weight="bold"))
+        simulacion_titulo.pack(side=tk.TOP, fill=tk.X, padx=10, pady=(5,0), anchor="w")
 
         self.crear_controles(simulacion_frame)
         self.crear_lienzo_grafico(simulacion_frame)
@@ -65,62 +78,91 @@ class FordFulkersonGUI:
 
     def crear_controles(self, parent):
         # Botones de control
-        control_frame = ttk.Frame(parent, padding="10")
-        control_frame.pack(side=tk.TOP, fill=tk.X)
+        control_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        control_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
         
-        # Crear Grafo
-        creacion_frame = ttk.LabelFrame(control_frame, text="1. Creación de Grafo", padding=5)
-        creacion_frame.pack(side=tk.LEFT, padx=10, fill='y')
+        # --- Grupo 1: Creación ---
+        creacion_frame = ctk.CTkFrame(control_frame)
+        creacion_frame.pack(side=tk.LEFT, padx=(0, 10), fill='y')
         
-        ttk.Label(creacion_frame, text="Nodos:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(creacion_frame, text="1. Creación de Grafo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
+
+        creacion_grid = ctk.CTkFrame(creacion_frame, fg_color="transparent")
+        creacion_grid.pack(fill="x", padx=10, pady=(0,10))
+
+        ctk.CTkLabel(creacion_grid, text="Nodos:").grid(row=0, column=0, padx=5)
         self.n_nodos = tk.IntVar(value=8)
         
-        # Slider y botones
-        self.slider_nodos = ttk.Scale(creacion_frame, from_=8, to=16, orient=tk.HORIZONTAL, variable=self.n_nodos, length=100, command=lambda s: self.n_nodos.set(int(float(s))))
-        self.slider_nodos.pack(side=tk.LEFT, padx=5)
-        ttk.Label(creacion_frame, textvariable=self.n_nodos).pack(side=tk.LEFT, padx=5)
+        # CTkSlider reemplaza a ttk.Scale
+        self.slider_nodos = ctk.CTkSlider(creacion_grid, from_=8, to=16, variable=self.n_nodos, number_of_steps=8, command=lambda s: self.n_nodos.set(int(s)))
+        self.slider_nodos.grid(row=0, column=1, padx=5)
+        ctk.CTkLabel(creacion_grid, textvariable=self.n_nodos).grid(row=0, column=2, padx=5)
         
-        self.btn_gen_aleatorio = ttk.Button(creacion_frame, text="Generar Aleatorio", command=self.generar_grafo_aleatorio)
-        self.btn_gen_aleatorio.pack(side=tk.LEFT, padx=(10,5), pady=2)
-        self.btn_crear_manual = ttk.Button(creacion_frame, text="Crear Lienzo Manual", command=self.iniciar_modo_manual)
-        self.btn_crear_manual.pack(side=tk.LEFT, padx=5, pady=2)
-        self.btn_cargar_archivo = ttk.Button(creacion_frame, text="Cargar Archivo...", command=self.cargar_desde_archivo)
-        self.btn_cargar_archivo.pack(side=tk.LEFT, padx=5, pady=2)
+        self.btn_gen_aleatorio = ctk.CTkButton(creacion_grid, text="Generar Aleatorio", command=self.generar_grafo_aleatorio)
+        self.btn_gen_aleatorio.grid(row=1, column=0, padx=5, pady=5)
+        self.btn_crear_manual = ctk.CTkButton(creacion_grid, text="Crear Lienzo Manual", command=self.iniciar_modo_manual)
+        self.btn_crear_manual.grid(row=1, column=1, padx=5, pady=5)
+        self.btn_cargar_archivo = ctk.CTkButton(creacion_grid, text="Cargar Archivo...", command=self.cargar_desde_archivo)
+        self.btn_cargar_archivo.grid(row=1, column=2, padx=5, pady=5)
         
-        # Edición Manual
-        edicion_frame = ttk.LabelFrame(control_frame, text="2. Edición Manual", padding=5)
+        # --- Grupo 2: Edición ---
+        edicion_frame = ctk.CTkFrame(control_frame)
         edicion_frame.pack(side=tk.LEFT, padx=10, fill='y')
-        self.btn_add_arista = ttk.Button(edicion_frame, text="Añadir Arista", command=self.activar_modo_add_arista, state='disabled')
-        self.btn_add_arista.pack(side=tk.LEFT, padx=5, pady=2)
-        self.btn_del_arista = ttk.Button(edicion_frame, text="Eliminar Arista", command=self.activar_modo_del_arista, state='disabled')
-        self.btn_del_arista.pack(side=tk.LEFT, padx=5, pady=2)
         
-        # Algoritmo
-        algo_frame = ttk.LabelFrame(control_frame, text="3. Algoritmo", padding=5)
+        ctk.CTkLabel(edicion_frame, text="2. Edición Manual", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
+        
+        edicion_grid = ctk.CTkFrame(edicion_frame, fg_color="transparent")
+        edicion_grid.pack(fill="x", padx=10, pady=(0,10))
+        
+        self.btn_add_arista = ctk.CTkButton(edicion_grid, text="Añadir Arista", command=self.activar_modo_add_arista, state='disabled')
+        self.btn_add_arista.pack(side=tk.LEFT, padx=5, pady=5)
+        self.btn_del_arista = ctk.CTkButton(edicion_grid, text="Eliminar Arista", command=self.activar_modo_del_arista, state='disabled')
+        self.btn_del_arista.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # --- Grupo 3: Algoritmo ---
+        algo_frame = ctk.CTkFrame(control_frame)
         algo_frame.pack(side=tk.LEFT, padx=10, fill='y')
-        self.btn_sel_fuentes = ttk.Button(algo_frame, text="Sel. Fuentes", command=self.activar_modo_fuente, state='disabled')
-        self.btn_sel_fuentes.pack(side=tk.LEFT, padx=5, pady=2)
-        self.btn_sel_sumideros = ttk.Button(algo_frame, text="Sel. Sumideros", command=self.activar_modo_sumidero, state='disabled')
-        self.btn_sel_sumideros.pack(side=tk.LEFT, padx=5, pady=2)
-        self.btn_ejecutar = ttk.Button(algo_frame, text="Ejecutar", command=self.ejecutar_algoritmo, state='disabled')
-        self.btn_ejecutar.pack(side=tk.LEFT, padx=5, pady=2)
+
+        ctk.CTkLabel(algo_frame, text="3. Algoritmo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
+
+        algo_grid = ctk.CTkFrame(algo_frame, fg_color="transparent")
+        algo_grid.pack(fill="x", padx=10, pady=(0,10))
         
-        # Reinicio
-        self.btn_reiniciar = ttk.Button(control_frame, image=self.reset_icon_image, command=self.reiniciar_aplicacion, state='disabled')
-        self.btn_reiniciar.pack(side=tk.RIGHT, padx=10)
-        self.status_label = ttk.Label(control_frame, text="Bienvenido.", anchor="e")
-        self.status_label.pack(side=tk.RIGHT, padx=10)
+        self.btn_sel_fuentes = ctk.CTkButton(algo_grid, text="Sel. Fuentes", command=self.activar_modo_fuente, state='disabled')
+        self.btn_sel_fuentes.pack(side=tk.LEFT, padx=5, pady=5)
+        self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Sel. Sumideros", command=self.activar_modo_sumidero, state='disabled')
+        self.btn_sel_sumideros.pack(side=tk.LEFT, padx=5, pady=5)
+        self.btn_ejecutar = ctk.CTkButton(algo_grid, text="Ejecutar", command=self.ejecutar_algoritmo, state='disabled', fg_color="green", hover_color="darkgreen")
+        self.btn_ejecutar.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # --- Reinicio y Status (a la derecha) ---
+        status_frame = ctk.CTkFrame(control_frame, fg_color="transparent")
+        status_frame.pack(side=tk.RIGHT, padx=(10, 0), fill='y')
+
+        self.btn_reiniciar = ctk.CTkButton(status_frame, image=self.reset_icon_image, text="", command=self.reiniciar_aplicacion, state='disabled', width=40)
+        self.btn_reiniciar.pack(side=tk.RIGHT, padx=5, pady=10)
+        
+        self.status_label = ctk.CTkLabel(status_frame, text="Bienvenido.", anchor="e")
+        self.status_label.pack(side=tk.RIGHT, padx=10, pady=10)
+
 
     def crear_lienzo_grafico(self, parent):
         # matplotlib para gráfico
         self.fig, self.ax = plt.subplots(figsize=(12, 8))
-        # Ajusta el área del plot dentro de la figura para evitar recortar etiquetas
         self.fig.subplots_adjust(top=0.95, bottom=0.02, left=0.02, right=0.98) 
         
-        self.canvas = FigureCanvasTkAgg(self.fig, master=parent)
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(10, 0))
+        appearance_mode = ctk.get_appearance_mode()
+        if appearance_mode == "Dark":
+            bg_color = "#242424" # Color oscuro estándar de CTk
+        else: # "Light"
+            bg_color = "#EBEBEB" # Color claro estándar de CTk
+
+        self.fig.patch.set_facecolor(bg_color)
+        self.ax.set_facecolor(bg_color)
         
-        # Conecta los manejadores de eventos
+        self.canvas = FigureCanvasTkAgg(self.fig, master=parent)
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(10, 10), padx=10)
+        
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
     
@@ -132,25 +174,22 @@ class FordFulkersonGUI:
         
         is_ready = self.grafo_obj is not None and self.grafo_obj.n > 0
         
-        # Habilita/Deshabilita botones de creación
-        self.btn_gen_aleatorio.config(state='normal')
-        self.btn_crear_manual.config(state='normal')
-        self.btn_cargar_archivo.config(state='normal')
+        self.btn_gen_aleatorio.configure(state='normal')
+        self.btn_crear_manual.configure(state='normal')
+        self.btn_cargar_archivo.configure(state='normal')
         
-        # Habilita/Deshabilita botones de algoritmo
-        self.btn_sel_fuentes.config(state='normal' if is_ready else 'disabled')
-        self.btn_sel_sumideros.config(state='normal' if is_ready else 'disabled')
-        self.btn_ejecutar.config(state='normal' if is_ready else 'disabled')
+        self.btn_sel_fuentes.configure(state='normal' if is_ready else 'disabled')
+        self.btn_sel_sumideros.configure(state='normal' if is_ready else 'disabled')
+        self.btn_ejecutar.configure(state='normal' if is_ready else 'disabled')
         
-        # Habilita/Deshabilita botones de edición manual
-        self.btn_add_arista.config(state='normal' if modo_manual else 'disabled')
-        self.btn_del_arista.config(state='normal' if modo_manual else 'disabled')
+        self.btn_add_arista.configure(state='normal' if modo_manual else 'disabled')
+        self.btn_del_arista.configure(state='normal' if modo_manual else 'disabled')
         
-        self.btn_reiniciar.config(state='disabled')
+        self.btn_reiniciar.configure(state='disabled')
 
     def generar_grafo_aleatorio(self):
         """Genera un Grafo Acíclico Dirigido (DAG) aleatorio, asegurando conectividad."""
-        self.slider_nodos.config(from_=8, to=16)
+        self.slider_nodos.configure(from_=8, to=16)
         if not (8 <= self.n_nodos.get() <= 16):
             self.n_nodos.set(8)
             
@@ -159,7 +198,7 @@ class FordFulkersonGUI:
         self.grafo_obj.inicializar(n)
         self._reset_estado()
         
-        self.status_label.config(text="Generando grafo DAG...")
+        self.status_label.configure(text="Generando grafo DAG...")
         
         # 1. Crear un orden topológico aleatorio para los nodos.
         # Esto es la clave para garantizar que sea un DAG.
@@ -187,7 +226,7 @@ class FordFulkersonGUI:
         self.grafo_obj.crear_grafo_networkx()
         self.actualizar_layout_y_dibujar()
         
-        self.status_label.config(text="Grafo DAG generado. Selecciona fuentes y sumideros.")
+        self.status_label.configure(text="Grafo DAG generado. Selecciona fuentes y sumideros.")
 
     def validar_y_corregir_direccion_flujo(self):
         """
@@ -228,7 +267,7 @@ class FordFulkersonGUI:
 
     def iniciar_modo_manual(self):
         # Lienzo vacío para modo manual
-        self.slider_nodos.config(from_=8, to=16)
+        self.slider_nodos.configure(from_=8, to=16)
         if not (8 <= self.n_nodos.get() <= 16):
             self.n_nodos.set(8)
             
@@ -237,7 +276,7 @@ class FordFulkersonGUI:
         self.grafo_obj.inicializar(n)
         self._reset_estado(modo_manual=True)
         
-        self.status_label.config(text="Modo Manual: Añade o elimina aristas.")
+        self.status_label.configure(text="Modo Manual: Añade o elimina aristas.")
         self.grafo_obj.crear_grafo_networkx()
         self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx) # Layout inicial
         self.dibujar_grafo()
@@ -266,7 +305,7 @@ class FordFulkersonGUI:
 
         #Carga, reinicio de estado y dibujo
         try:
-            self.slider_nodos.config(from_=8, to=16)
+            self.slider_nodos.configure(from_=8, to=16)
             self.grafo_obj = FlujoMaximoGrafico()
             self.grafo_obj.cargar_desde_archivo(filepath)
             self._reset_estado()
@@ -275,10 +314,10 @@ class FordFulkersonGUI:
             self.grafo_obj.crear_grafo_networkx()
             self.actualizar_layout_y_dibujar()
             
-            self.btn_sel_fuentes.config(state='normal')
-            self.btn_sel_sumideros.config(state='normal')
-            self.btn_ejecutar.config(state='normal')
-            self.status_label.config(text=f"Grafo cargado desde {filepath.split('/')[-1]}.")
+            self.btn_sel_fuentes.configure(state='normal')
+            self.btn_sel_sumideros.configure(state='normal')
+            self.btn_ejecutar.configure(state='normal')
+            self.status_label.configure(text=f"Grafo cargado desde {filepath.split('/')[-1]}.")
         except Exception as e:
             messagebox.showerror("Error de Procesamiento", f"No se pudo procesar el archivo de grafo:\n{e}")
             self.reiniciar_aplicacion()
@@ -306,11 +345,11 @@ class FordFulkersonGUI:
 
     def _bloquear_edicion(self):
         """Deshabilita los botones de creación y edición para iniciar un modo de selección o ejecución."""
-        self.btn_gen_aleatorio.config(state='disabled')
-        self.btn_crear_manual.config(state='disabled')
-        self.btn_add_arista.config(state='disabled')
-        self.btn_del_arista.config(state='disabled')
-        self.btn_cargar_archivo.config(state='disabled')
+        self.btn_gen_aleatorio.configure(state='disabled')
+        self.btn_crear_manual.configure(state='disabled')
+        self.btn_add_arista.configure(state='disabled')
+        self.btn_del_arista.configure(state='disabled')
+        self.btn_cargar_archivo.configure(state='disabled')
 
         self.modo_seleccion = None
         self.primer_nodo_arista = None
@@ -320,25 +359,25 @@ class FordFulkersonGUI:
         # Modo de selección de Fuentes (clic)
         self._bloquear_edicion()
         self.modo_seleccion = 'fuente'
-        self.status_label.config(text="MODO SELECCIÓN DE FUENTES: Haz clic en los nodos.")
+        self.status_label.configure(text="MODO SELECCIÓN DE FUENTES: Haz clic en los nodos.")
         
     def activar_modo_sumidero(self): 
         # Modo de selección de Sumideros (clic)
         self._bloquear_edicion()
         self.modo_seleccion = 'sumidero'
-        self.status_label.config(text="MODO SELECCIÓN DE SUMIDEROS: Haz clic en los nodos.")
+        self.status_label.configure(text="MODO SELECCIÓN DE SUMIDEROS: Haz clic en los nodos.")
         
     def activar_modo_add_arista(self): 
         # Añade arista
         self.modo_seleccion = 'add_edge_1'
         self.primer_nodo_arista = None
-        self.status_label.config(text="AÑADIR ARISTA: Haz clic en el nodo de INICIO.")
+        self.status_label.configure(text="AÑADIR ARISTA: Haz clic en el nodo de INICIO.")
         
     def activar_modo_del_arista(self): 
         # Elimna arista
         self.modo_seleccion = 'del_edge_1'
         self.primer_nodo_arista = None
-        self.status_label.config(text="ELIMINAR ARISTA: Haz clic en el nodo de INICIO.")
+        self.status_label.configure(text="ELIMINAR ARISTA: Haz clic en el nodo de INICIO.")
 
     # Manejadores de Eventos ---
     def on_click(self, event):
@@ -378,10 +417,10 @@ class FordFulkersonGUI:
             
             if self.modo_seleccion == 'add_edge_1': 
                 self.modo_seleccion = 'add_edge_2'
-                self.status_label.config(text=f"AÑADIR ARISTA: Inicio en {nodo_cercano}. Clic en FIN.")
+                self.status_label.configure(text=f"AÑADIR ARISTA: Inicio en {nodo_cercano}. Clic en FIN.")
             else: 
                 self.modo_seleccion = 'del_edge_2'
-                self.status_label.config(text=f"ELIMINAR ARISTA: Inicio en {nodo_cercano}. Clic en FIN.")
+                self.status_label.configure(text=f"ELIMINAR ARISTA: Inicio en {nodo_cercano}. Clic en FIN.")
                 
         # Lógica de edición - Seleccional final y ejecutar
         elif self.modo_seleccion in ['add_edge_2', 'del_edge_2']:
@@ -399,7 +438,7 @@ class FordFulkersonGUI:
                         self.grafo_obj.remover_arista(u,v)
                         self.dibujar_grafo()
                     else: 
-                        self.status_label.config(text=f"ERROR: No existe arista de {u} a {v}.")
+                        self.status_label.configure(text=f"ERROR: No existe arista de {u} a {v}.")
                         
             # Vuelve al inicio del modo de edición
             if self.modo_seleccion == 'add_edge_2': 
@@ -431,7 +470,7 @@ class FordFulkersonGUI:
             self._reset_estado(modo_manual=True) 
             self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx)
             self.dibujar_grafo()
-            self.status_label.config(text="Error: Grafo no conectado. Se reinició la selección.")
+            self.status_label.configure(text="Error: Grafo no conectado. Se reinició la selección.")
             return
         if not self.fuentes or not self.sumideros: 
             messagebox.showerror("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero.")
@@ -447,34 +486,40 @@ class FordFulkersonGUI:
             self.ejecutar_con_capacidades()
 
     def abrir_dialogo_capacidades(self):
-        # Cuadro de diálogo para capacidades (Se considerará oferta/demanda)
-        self.dialog = tk.Toplevel(self.master)
+        # Cuadro de diálogo para capacidades
+        # Usamos CTkToplevel en lugar de tk.Toplevel
+        self.dialog = ctk.CTkToplevel(self.master)
         self.dialog.title("Verificación de Capacidades")
-        frame = ttk.Frame(self.dialog, padding="20")
-        frame.pack(expand=True, fill="both")
+        
+        frame = ctk.CTkFrame(self.dialog)
+        frame.pack(expand=True, fill="both", padx=20, pady=20)
+        
         self.entry_capacidades = {}
         
         if len(self.fuentes) > 1:
-            ttk.Label(frame, text="Capacidad de oferta (Fuentes):", font="-weight bold").pack(pady=5, anchor='w')
+            ctk.CTkLabel(frame, text="Capacidad de oferta (Fuentes):", font=ctk.CTkFont(weight="bold")).pack(pady=5, anchor='w')
             for f in self.fuentes:
-                row = ttk.Frame(frame)
+                row = ctk.CTkFrame(frame, fg_color="transparent")
                 row.pack(fill='x', pady=2)
-                ttk.Label(row, text=f"Nodo {f}:").pack(side='left', padx=5)
-                entry = ttk.Entry(row)
+                ctk.CTkLabel(row, text=f"Nodo {f}:", width=60).pack(side='left', padx=5)
+                # Usamos CTkEntry en lugar de ttk.Entry
+                entry = ctk.CTkEntry(row)
                 entry.pack(side='right', expand=True, fill='x')
                 self.entry_capacidades[f] = entry
                 
         if len(self.sumideros) > 1:
-            ttk.Label(frame, text="Capacidad de demanda (Sumideros):", font="-weight bold").pack(pady=(15, 5), anchor='w')
+            ctk.CTkLabel(frame, text="Capacidad de demanda (Sumideros):", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5), anchor='w')
             for s in self.sumideros:
-                row = ttk.Frame(frame)
+                row = ctk.CTkFrame(frame, fg_color="transparent")
                 row.pack(fill='x', pady=2)
-                ttk.Label(row, text=f"Nodo {s}:").pack(side='left', padx=5)
-                entry = ttk.Entry(row)
+                ctk.CTkLabel(row, text=f"Nodo {s}:", width=60).pack(side='left', padx=5)
+                # Usamos CTkEntry en lugar de ttk.Entry
+                entry = ctk.CTkEntry(row)
                 entry.pack(side='right', expand=True, fill='x')
                 self.entry_capacidades[s] = entry
                 
-        ttk.Button(frame, text="Confirmar y Ejecutar", command=self.ejecutar_con_capacidades).pack(pady=20)
+        # Usamos CTkButton en lugar de ttk.Button
+        ctk.CTkButton(frame, text="Confirmar y Ejecutar", command=self.ejecutar_con_capacidades).pack(pady=20)
         
         # Configuración modal
         self.dialog.transient(self.master)
@@ -503,7 +548,7 @@ class FordFulkersonGUI:
             return
             
         # Preparar Grafo Lógico y Visual
-        self.status_label.config(text="Limpiando y calculando...")
+        self.status_label.configure(text="Limpiando y calculando...")
         self.grafo_obj.remover_aristas_internas(self.fuentes, self.sumideros)
         self.grafo_obj.preparar_para_multifuente(self.fuentes, self.sumideros, cap_fuentes, cap_sumideros)
         self.actualizar_layout_y_dibujar()
@@ -513,14 +558,14 @@ class FordFulkersonGUI:
         self.current_step_index = 0
         self.dibujar_grafo(paso_idx=0)
         
-        self.status_label.config(text=f"¡Cálculo completo! Flujo Máximo: {flujo_maximo:.2f}. Usa las flechas.")
-        self.btn_reiniciar.config(state='normal')
+        self.status_label.configure(text=f"¡Cálculo completo! Flujo Máximo: {flujo_maximo:.2f}. Usa las flechas.")
+        self.btn_reiniciar.configure(state='normal')
         
     def reiniciar_aplicacion(self):
         """Restablece la aplicación a su estado inicial de bienvenida."""
         self.grafo_obj = None
         self._reset_estado()
-        self.status_label.config(text="Bienvenido. Genere un grafo para comenzar.")
+        self.status_label.configure(text="Bienvenido. Genere un grafo para comenzar.")
         self.dibujar_grafo()
         
     # Método de Dibujo (Se mantiene compacto pero con espaciado mejorado)
@@ -528,6 +573,47 @@ class FordFulkersonGUI:
     def dibujar_grafo(self, paso_idx=None):
         """Dibuja el grafo en el lienzo de Matplotlib, mostrando el estado actual o un paso específico."""
         self.ax.clear()
+
+        try:
+            # Obtiene los colores del tema actual
+            appearance_mode = ctk.get_appearance_mode()
+            if appearance_mode == "Dark":
+                bg_color = "#242424"
+                text_color = "#EBEBEB"
+            else: # "Light" mode
+                bg_color = "#EBEBEB"
+                text_color = "#1F1F1F"
+
+            legend_facecolor = bg_color
+            legend_edgecolor = text_color
+
+            node_color_default = '#007BFF' # Azul
+            node_color_fuente = '#28A745'  # Verde
+            node_color_sumidero = '#DC3545' # Rojo
+            edge_color_default = 'gray'
+            edge_color_flujo = '#007BFF'    # Azul
+            edge_color_saturada = '#BD0000' # Rojo oscuro
+            edge_color_camino = '#17A2B8'  # Celeste
+            edge_color_camino_atras = '#FFC107' # Naranja
+
+        except:
+            # Colores de respaldo si falla
+            bg_color = 'white'
+            text_color = 'black'
+            node_color_default = 'lightblue'
+            node_color_fuente = 'lightgreen'
+            node_color_sumidero = 'lightcoral'
+            edge_color_default = 'gray'
+            edge_color_flujo = 'blue'
+            edge_color_saturada = 'darkred'
+            edge_color_camino = 'red'
+            edge_color_camino_atras = 'orange'
+            legend_facecolor = 'white'
+            legend_edgecolor = 'black'
+            
+        self.fig.patch.set_facecolor(bg_color)
+        self.ax.clear()
+        self.ax.set_facecolor(bg_color)
         
         if not self.grafo_obj or not self.grafo_obj.pos:
             self.ax.text(0.5, 0.5, "Genera un grafo para comenzar", ha='center', va='center', fontsize=12)
@@ -574,6 +660,11 @@ class FordFulkersonGUI:
         nx.draw_networkx_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, labels=labels, font_size=10, font_weight='bold', font_color='black')
 
         edge_labels, edge_colors, edge_widths = {}, [], []
+
+        # --- Define los colores de la leyenda ---
+        legend_facecolor = ctk.ThemeManager.theme["CTkFrame"]["fg_color"][0]
+        legend_edgecolor = ctk.ThemeManager.theme["CTkFrame"]["border_color"][0]
+        legend_textcolor = text_color
         
         # Caso: Grafo Inicial (sin pasos)
         if paso_idx is None: 
