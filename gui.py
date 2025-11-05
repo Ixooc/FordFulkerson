@@ -80,12 +80,12 @@ class FordFulkersonGUI:
 
     def crear_controles(self, parent):
         
-        scrollable_frame = ctk.CTkScrollableFrame(parent, corner_radius=0, fg_color="transparent")
-        scrollable_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=0)
+        controls_container = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
+        controls_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=0)
         
         card_color = ("#FFFFFF", "#343638")
         
-        creacion_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
+        creacion_frame = ctk.CTkFrame(controls_container, fg_color=card_color)
         creacion_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(15, 10))
         
         ctk.CTkLabel(creacion_frame, text="1. Creación de Grafo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -109,7 +109,7 @@ class FordFulkersonGUI:
         self.btn_cargar_archivo = ctk.CTkButton(creacion_grid, text="Cargar Archivo...", command=self.cargar_desde_archivo)
         self.btn_cargar_archivo.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
         
-        edicion_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
+        edicion_frame = ctk.CTkFrame(controls_container, fg_color=card_color)
         edicion_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
         
         ctk.CTkLabel(edicion_frame, text="2. Edición Manual", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -122,7 +122,7 @@ class FordFulkersonGUI:
         self.btn_del_arista = ctk.CTkButton(edicion_grid, text="Eliminar Arista", command=self.activar_modo_del_arista, state='disabled')
         self.btn_del_arista.pack(fill=tk.X, padx=5, pady=(0, 5))
         
-        algo_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
+        algo_frame = ctk.CTkFrame(controls_container, fg_color=card_color)
         algo_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
 
         ctk.CTkLabel(algo_frame, text="3. Algoritmo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -629,7 +629,12 @@ class FordFulkersonGUI:
             edge_widths_corte = [4 if (u, v) in aristas_corte or (v,u) in aristas_corte else 1 for u, v in self.grafo_obj.grafo_nx.edges()]
             
             nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodos_originales, node_color=node_colors_corte, node_size=1000)
-            nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', color=text_color)
+            
+            # --- INICIO DE LA CORRECCIÓN ---
+            # El argumento correcto es 'font_color', no 'color'
+            nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', font_color=text_color)
+            # --- FIN DE LA CORRECCIÓN ---
+            
             nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors_corte, width=edge_widths_corte, arrows=True, arrowsize=20, node_size=1000)
             
             legend_elements = [plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_fuente, label='Conjunto S'), plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_sumidero, label='Conjunto T'), plt.Line2D([0], [0], color='red', lw=4, label='Arista de Corte')]
