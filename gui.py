@@ -200,8 +200,12 @@ class FordFulkersonGUI:
 
         aristas_a_revisar = list(self.grafo_obj.grafo_nx.edges())
         aristas_invertidas = 0
+        n_original = self.grafo_obj.n
 
         for u, v in aristas_a_revisar:
+            if u >= n_original or v >= n_original:
+                continue
+
             capacidad = self.grafo_obj.capacidad[u][v]
 
             # Caso 1: Arista entrando a una fuente (debe salir)
@@ -434,10 +438,7 @@ class FordFulkersonGUI:
             return
         
         self.validar_y_corregir_direccion_flujo()
-            
         self._bloquear_edicion()
-        self.btn_sel_fuentes.config(state='disabled')
-        self.btn_sel_sumideros.config(state='disabled')
         
         # Si hay más de una fuente o un sumidero, se abre el cuadro de diálogo para obtener las capacidades
         if len(self.fuentes) > 1 or len(self.sumideros) > 1: 
@@ -578,7 +579,9 @@ class FordFulkersonGUI:
         if paso_idx is None: 
             for u, v in self.grafo_obj.grafo_nx.edges():
                 if u < self.grafo_obj.n and v < self.grafo_obj.n:
-                    edge_labels[(u,v)] = f"0/{self.grafo_obj.capacidad[u][v]}"
+                    edge_labels[(u,v)] = f"{self.grafo_obj.capacidad[u][v]}/0"
+
+
             edge_colors = ['gray'] * self.grafo_obj.grafo_nx.number_of_edges()
             edge_widths = [1.5] * self.grafo_obj.grafo_nx.number_of_edges()
         
@@ -622,7 +625,7 @@ class FordFulkersonGUI:
                 c = cap_extendida[u][v] if u < len(cap_extendida) and v < len(cap_extendida[u]) else 0
                 
                 cap_str = 'inf' if c == float('inf') else int(c)
-                edge_labels[(u,v)] = f"{int(f)}/{cap_str}"
+                edge_labels[(u,v)] = f"{cap_str}/{int(f)}"
                 
                 es_camino_adelante = (u,v) in camino
                 es_camino_atras = (v,u) in camino
