@@ -43,7 +43,9 @@ class FordFulkersonGUI:
 
     def crear_layout_principal(self):
         
-        info_frame = ctk.CTkFrame(self.master, corner_radius=0) 
+        self.master.configure(fg_color=("#EBEBEB", "#242424"))
+
+        info_frame = ctk.CTkFrame(self.master, corner_radius=0, fg_color="transparent") 
         info_frame.pack(side=tk.TOP, fill=tk.X, padx=0, pady=0)
         
         info_frame_content = ctk.CTkFrame(info_frame, fg_color="transparent")
@@ -62,14 +64,14 @@ class FordFulkersonGUI:
         main_app_frame = ctk.CTkFrame(self.master, fg_color="transparent")
         main_app_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=0, pady=0)
 
-        self.sidebar_frame = ctk.CTkFrame(main_app_frame, width=280, corner_radius=0)
+        self.sidebar_frame = ctk.CTkFrame(main_app_frame, width=280, corner_radius=0, fg_color=("#F0F0F0", "#2B2B2B"))
         self.sidebar_frame.pack(side=tk.LEFT, fill=tk.Y, padx=0, pady=0)
         self.sidebar_frame.pack_propagate(False)
 
-        self.content_frame = ctk.CTkFrame(main_app_frame, fg_color=("#EBEBEB", "#242424"))
+        self.content_frame = ctk.CTkFrame(main_app_frame, fg_color="transparent")
         self.content_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=0, pady=0)
         
-        self.simulacion_frame = ctk.CTkFrame(self.content_frame) 
+        self.simulacion_frame = ctk.CTkFrame(self.content_frame, fg_color=("#FFFFFF", "#2B2B2B")) 
         self.simulacion_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
         
         self.crear_controles(self.sidebar_frame)
@@ -81,7 +83,9 @@ class FordFulkersonGUI:
         scrollable_frame = ctk.CTkScrollableFrame(parent, corner_radius=0, fg_color="transparent")
         scrollable_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=0)
         
-        creacion_frame = ctk.CTkFrame(scrollable_frame)
+        card_color = ("#FFFFFF", "#343638")
+        
+        creacion_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
         creacion_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=(15, 10))
         
         ctk.CTkLabel(creacion_frame, text="1. Creación de Grafo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -105,7 +109,7 @@ class FordFulkersonGUI:
         self.btn_cargar_archivo = ctk.CTkButton(creacion_grid, text="Cargar Archivo...", command=self.cargar_desde_archivo)
         self.btn_cargar_archivo.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
         
-        edicion_frame = ctk.CTkFrame(scrollable_frame)
+        edicion_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
         edicion_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
         
         ctk.CTkLabel(edicion_frame, text="2. Edición Manual", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -118,7 +122,7 @@ class FordFulkersonGUI:
         self.btn_del_arista = ctk.CTkButton(edicion_grid, text="Eliminar Arista", command=self.activar_modo_del_arista, state='disabled')
         self.btn_del_arista.pack(fill=tk.X, padx=5, pady=(0, 5))
         
-        algo_frame = ctk.CTkFrame(scrollable_frame)
+        algo_frame = ctk.CTkFrame(scrollable_frame, fg_color=card_color)
         algo_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
 
         ctk.CTkLabel(algo_frame, text="3. Algoritmo", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5,5))
@@ -131,7 +135,7 @@ class FordFulkersonGUI:
         self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Sel. Sumideros", command=self.activar_modo_sumidero, state='disabled')
         self.btn_sel_sumideros.pack(fill=tk.X, padx=5, pady=(0, 5))
         
-        self.btn_ejecutar = ctk.CTkButton(algo_frame, text="Ejecutar Algoritmo", command=self.ejecutar_algoritmo, state='disabled', fg_color="#009933", hover_color="#007722")
+        self.btn_ejecutar = ctk.CTkButton(algo_frame, text="Ejecutar Algoritmo", command=self.ejecutar_algoritmo, state='disabled', fg_color="#28A745", hover_color="#218838")
         self.btn_ejecutar.pack(fill=tk.X, padx=15, pady=(5,10))
         
         status_frame = ctk.CTkFrame(parent, height=60, corner_radius=0, border_width=1, border_color=("#CCCCCC", "#333333"))
@@ -526,17 +530,19 @@ class FordFulkersonGUI:
                 text_color = "#EBEBEB"
                 legend_facecolor = "#343638"
                 legend_edgecolor = "#EBEBEB"
+                accent_color = "#3B8ED0" 
             else: 
                 bg_color = "#FFFFFF"
                 text_color = "#1F1F1F"
                 legend_facecolor = "#F0F0F0"
                 legend_edgecolor = "#1F1F1F"
+                accent_color = "#3B8ED0"
             
-            node_color_default = '#007BFF' 
+            node_color_default = accent_color 
             node_color_fuente = '#28A745'  
             node_color_sumidero = '#DC3545' 
             edge_color_default = 'gray'
-            edge_color_flujo = '#007BFF'    
+            edge_color_flujo = accent_color    
             edge_color_saturada = '#BD0000' 
             edge_color_camino = '#17A2B8'  
             edge_color_camino_atras = '#FFC107' 
