@@ -377,13 +377,24 @@ class FordFulkersonGUI:
         self.primer_nodo_arista = None
         self.segundo_nodo_arista = None
 
+    def _bloquear_edicion_grafo(self):
+        self.btn_gen_aleatorio.configure(state='disabled')
+        self.btn_crear_manual.configure(state='disabled')
+        self.btn_add_arista.configure(state='disabled')
+        self.btn_del_arista.configure(state='disabled')
+        self.btn_cargar_archivo.configure(state='disabled')
+
+        self.modo_seleccion = None
+        self.primer_nodo_arista = None
+        self.segundo_nodo_arista = None
+
     def activar_modo_fuente(self): 
-        self._bloquear_edicion()
+        self._bloquear_edicion_grafo()
         self.modo_seleccion = 'fuente'
         self.status_label.configure(text="MODO SELECCIÓN DE FUENTES: Haz clic en los nodos.")
         
     def activar_modo_sumidero(self): 
-        self._bloquear_edicion()
+        self._bloquear_edicion_grafo()
         self.modo_seleccion = 'sumidero'
         self.status_label.configure(text="MODO SELECCIÓN DE SUMIDEROS: Haz clic en los nodos.")
         
@@ -712,7 +723,7 @@ class FordFulkersonGUI:
         self.current_step_index = 0
         self.dibujar_grafo(paso_idx=0)
         
-        self.status_label.configure(text=f"¡Cálculo completo! Flujo Máximo: {flujo_maximo:.2f}. Usa las flechas.")
+        self.status_label.configure(text=f"¡Cálculo completo! Flujo Máximo: {int(flujo_maximo)}. Usa las flechas.")
         self.btn_reiniciar.configure(state='normal')
         
         self.btn_ver_flujo.configure(state='normal')
@@ -909,13 +920,13 @@ class FordFulkersonGUI:
             
             legend_elements = [plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_fuente, label='Conjunto S'), plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_sumidero, label='Conjunto T'), plt.Line2D([0], [0], color='red', lw=4, label='Arista de Corte')]
             
-            leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor)
+            leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor, bbox_to_anchor=(1, 1.05))
             for text in leg.get_texts(): text.set_color(text_color) 
 
             flujo_max = paso_actual.get('flujo_maximo', 0)
             cap_corte = sum(cap for u, v, cap in aristas_corte_data)
             
-            self.status_label.configure(text=f"Resultado: Flujo Máx. ({flujo_max:.2f}) = Cap. Corte ({cap_corte:.2f})")
+            self.status_label.configure(text=f"Resultado: Flujo Máx. ({int(flujo_max)}) = Cap. Corte ({int(cap_corte)})")
         
         else: 
             flujo_extendido = paso_actual.get('flujo_extendido', [])
@@ -965,7 +976,7 @@ class FordFulkersonGUI:
                 plt.Line2D([0], [0], color=edge_color_default, lw=1.5, label='Arista sin Flujo'),
                 plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='Nodo en Camino Actual')
             ]
-            leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor)
+            leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor, bbox_to_anchor=(1, 1.05))
             for text in leg.get_texts(): text.set_color(text_color) 
 
         if paso_actual.get('tipo') != 'corte_minimo':
