@@ -86,7 +86,7 @@ class FordFulkersonGUI:
     def crear_controles(self, parent):
         
         controls_container = ctk.CTkFrame(parent, corner_radius=0, fg_color="transparent")
-        controls_container.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=0)
+        controls_container.pack(side=tk.TOP, fill="x", expand=False, padx=0)
         
         card_color = ("#FFFFFF", "#343638")
         
@@ -111,8 +111,26 @@ class FordFulkersonGUI:
         self.btn_gen_aleatorio.grid(row=1, column=0, columnspan=3, padx=5, pady=(10,5), sticky="ew")
         self.btn_crear_manual = ctk.CTkButton(creacion_grid, text="Crear Lienzo Manual", command=self.iniciar_modo_manual)
         self.btn_crear_manual.grid(row=2, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
+        
         self.btn_cargar_archivo = ctk.CTkButton(creacion_grid, text="Cargar Archivo...", command=self.cargar_desde_archivo)
         self.btn_cargar_archivo.grid(row=3, column=0, columnspan=3, padx=5, pady=5, sticky="ew")
+        
+        tooltip_text = (
+            "Formato de Archivo (.txt):\n\n"
+            "Definición de Variables:\n"
+            "  n = N° total de nodos\n"
+            "  m = N° total de aristas\n"
+            "  u = Nodo de inicio\n"
+            "  v = Nodo de fin\n"
+            "  c = Capacidad de la arista (u, v)\n\n"
+            "Estructura del Archivo:\n"
+            "Línea 1: n m\n"
+            "Línea 2: u1 v1 c1\n"
+            "Línea 3: u2 v2 c2\n"
+            "  ...\n"
+            "Línea m+1: um vm cm"
+        )
+        CTkToolTip(self.btn_cargar_archivo, tooltip_text)
         
         edicion_frame = ctk.CTkFrame(controls_container, fg_color=card_color)
         edicion_frame.pack(side=tk.TOP, fill=tk.X, padx=15, pady=10)
@@ -135,23 +153,23 @@ class FordFulkersonGUI:
         algo_grid = ctk.CTkFrame(algo_frame, fg_color="transparent")
         algo_grid.pack(fill="x", padx=10, pady=(0,10))
         
-        self.btn_sel_fuentes = ctk.CTkButton(algo_grid, text="Sel. Fuentes", command=self.activar_modo_fuente, state='disabled')
+        self.btn_sel_fuentes = ctk.CTkButton(algo_grid, text="Seleccionar Fuentes", command=self.activar_modo_fuente, state='disabled')
         self.btn_sel_fuentes.pack(fill=tk.X, padx=5, pady=5)
-        self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Sel. Sumideros", command=self.activar_modo_sumidero, state='disabled')
+        self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Seleccoinar Sumideros", command=self.activar_modo_sumidero, state='disabled')
         self.btn_sel_sumideros.pack(fill=tk.X, padx=5, pady=(0, 5))
         
-        self.btn_ejecutar = ctk.CTkButton(algo_frame, text="Ejecutar Algoritmo", command=self.ejecutar_algoritmo, state='disabled', fg_color="#28A745", hover_color="#218838")
+        self.btn_ejecutar = ctk.CTkButton(algo_grid, text="Ejecutar Algoritmo", command=self.ejecutar_algoritmo, state='disabled', fg_color="#28A745", hover_color="#218838")
         self.btn_ejecutar.pack(fill=tk.X, padx=15, pady=(5,10))
         
-        status_frame = ctk.CTkFrame(parent, height=60, corner_radius=0, border_width=1, border_color=("#CCCCCC", "#333333"))
+        status_frame = ctk.CTkFrame(parent, height=80, corner_radius=0, border_width=1, border_color=("#CCCCCC", "#333333"))
         status_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=0, padx=0)
         status_frame.pack_propagate(False)
 
         self.btn_reiniciar = ctk.CTkButton(status_frame, image=self.reset_icon_image, text="", command=self.reiniciar_aplicacion, state='disabled', width=40, height=40)
-        self.btn_reiniciar.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.btn_reiniciar.pack(side=tk.RIGHT, padx=10, pady=20)
         
-        self.status_label = ctk.CTkLabel(status_frame, text="Bienvenido.", anchor="w", wraplength=190)
-        self.status_label.pack(side=tk.LEFT, padx=15, pady=10)
+        self.status_label = ctk.CTkLabel(status_frame, text="Bienvenido.", anchor="w", wraplength=190, justify="left")
+        self.status_label.pack(side=tk.LEFT, padx=15, pady=10, fill="x")
 
 
     def crear_lienzo_grafico(self, parent):
@@ -206,7 +224,7 @@ class FordFulkersonGUI:
         self.btn_add_arista.configure(state=step_2_3_state)
         self.btn_del_arista.configure(state=step_2_3_state)
         
-        self.btn_reiniciar.configure(state='disabled')
+        self.btn_reiniciar.configure(state='normal' if is_ready else 'disabled')
 
         if self.btn_prev_paso:
             self.btn_prev_paso.configure(state='disabled')
@@ -224,6 +242,7 @@ class FordFulkersonGUI:
         n = self.n_nodos.get()
         self.grafo_obj = FlujoMaximoGrafico()
         self.grafo_obj.inicializar(n)
+        self.grafo_obj.crear_grafo_networkx()
         self._reset_estado()
         
         self.status_label.configure(text="Generando grafo DAG...")
@@ -317,10 +336,10 @@ class FordFulkersonGUI:
             self.slider_nodos.configure(from_=8, to=16)
             self.grafo_obj = FlujoMaximoGrafico()
             self.grafo_obj.cargar_desde_archivo(filepath)
+            self.grafo_obj.crear_grafo_networkx()
             self._reset_estado()
             self.n_nodos.set(self.grafo_obj.n)
             
-            self.grafo_obj.crear_grafo_networkx()
             self.actualizar_layout_y_dibujar()
             
             self.btn_sel_fuentes.configure(state='normal')
@@ -470,9 +489,7 @@ class FordFulkersonGUI:
         self.dibujar_grafo(paso_idx=self.current_step_index)
 
     def _actualizar_botones_nav(self):
-        if not self.pasos:
-            self.btn_prev_paso.configure(state='disabled')
-            self.btn_next_paso.configure(state='disabled')
+        if not self.pasos or not hasattr(self, 'btn_prev_paso'):
             return
 
         total_pasos = len(self.pasos)
@@ -577,10 +594,18 @@ class FordFulkersonGUI:
         self.btn_ver_corte.configure(state='normal')
         
     def reiniciar_aplicacion(self):
-        self.grafo_obj = None
-        self._reset_estado()
-        self.status_label.configure(text="Bienvenido. Genere un grafo para comenzar.")
-        self.dibujar_grafo()
+        if self.modo_seleccion is not None:
+            self.modo_seleccion = None
+            self.fuentes = []
+            self.sumideros = []
+            self._reset_estado()
+            self.actualizar_layout_y_dibujar()
+            self.status_label.configure(text="Selección cancelada. Elija una acción.")
+        else:
+            self.grafo_obj = None
+            self._reset_estado()
+            self.status_label.configure(text="Bienvenido. Genere un grafo para comenzar.")
+            self.dibujar_grafo()
         
     def dibujar_grafo(self, paso_idx=None):
         
@@ -636,8 +661,12 @@ class FordFulkersonGUI:
         paso_actual = self.pasos[paso_idx] if paso_idx is not None and paso_idx < len(self.pasos) else {}
         titulo = paso_actual.get('titulo', "Selecciona Fuentes (Verde) y Sumideros (Rojo)")
 
-        if paso_idx is not None and self.pasos and paso_actual.get('tipo') != 'corte_minimo':
-            self.status_label.configure(text=f"Paso {paso_idx+1}/{len(self.pasos)}: {titulo}")
+        if paso_idx is not None and self.pasos:
+            if paso_actual.get('tipo') != 'corte_minimo':
+                self.status_label.configure(text=f"Paso {paso_idx+1}/{len(self.pasos)}: {titulo}")
+        elif paso_idx is None and "Bienvenido" in self.status_label.cget("text"):
+             self.status_label.configure(text="Grafo listo. Selecciona fuentes y sumideros.")
+
 
         self.ax.set_title(titulo, fontsize=14, color=text_color)
 
@@ -716,13 +745,23 @@ class FordFulkersonGUI:
                                    arrowsize=20, 
                                    node_size=1000)
             
-            nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
-                                         edge_labels=edge_labels_corte, 
-                                         ax=self.ax, font_size=9, 
-                                         bbox=dict(facecolor=bg_color, alpha=0.9, edgecolor='none', pad=0.1), 
-                                         font_color='red',
-                                         font_weight='bold',
-                                         label_pos=0.3)
+            for (u, v), label in edge_labels_corte.items():
+                if u not in self.grafo_obj.pos or v not in self.grafo_obj.pos: continue
+                pos_u = self.grafo_obj.pos[u]
+                pos_v = self.grafo_obj.pos[v]
+                length = math.sqrt((pos_v[0] - pos_u[0])**2 + (pos_v[1] - pos_u[1])**2)
+                
+                k = 0.3
+                dynamic_label_pos = k / length if length > 0 else 0.3
+                dynamic_label_pos = max(0.1, min(0.4, dynamic_label_pos)) 
+
+                nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
+                                              edge_labels={(u,v): label}, 
+                                              ax=self.ax, font_size=7, 
+                                              bbox=dict(facecolor=bg_color, alpha=0.9, edgecolor='none', pad=0.1), 
+                                              font_color='red',
+                                              font_weight='bold',
+                                              label_pos=dynamic_label_pos)
             
             legend_elements = [plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_fuente, label='Conjunto S'), plt.Line2D([0], [0], marker='o', color='w', mfc=node_color_sumidero, label='Conjunto T'), plt.Line2D([0], [0], color='red', lw=4, label='Arista de Corte')]
             
@@ -787,11 +826,67 @@ class FordFulkersonGUI:
 
         if paso_actual.get('tipo') != 'corte_minimo':
             nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=node_sizes)
-            nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, edge_labels=edge_labels, ax=self.ax, font_size=9, 
-                                          bbox=dict(facecolor=bg_color, alpha=0.7, edgecolor='none', pad=0.1), font_color=text_color, label_pos=0.3)
+
+            for (u, v), label in edge_labels.items():
+                if u not in self.grafo_obj.pos or v not in self.grafo_obj.pos: continue
+                pos_u = self.grafo_obj.pos[u]
+                pos_v = self.grafo_obj.pos[v]
+                length = math.sqrt((pos_v[0] - pos_u[0])**2 + (pos_v[1] - pos_u[1])**2)
+                
+                k = 0.3
+                dynamic_label_pos = k / length if length > 0 else 0.3
+                dynamic_label_pos = max(0.1, min(0.4, dynamic_label_pos)) 
+
+                nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
+                                              edge_labels={(u,v): label}, 
+                                              ax=self.ax, font_size=7, 
+                                              bbox=dict(facecolor=bg_color, alpha=0.7, edgecolor='none', pad=0.1), 
+                                              font_color=text_color, 
+                                              label_pos=dynamic_label_pos)
             
         self.ax.axis('off')
         self.canvas.draw()
 
         if hasattr(self, 'btn_prev_paso'): 
             self._actualizar_botones_nav()
+
+
+class CTkToolTip:
+    def __init__(self, widget, message):
+        self.widget = widget
+        self.message = message
+        self.tooltip_window = None
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event):
+        if self.tooltip_window:
+            return
+        
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        
+        self.tooltip_window = ctk.CTkToplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+        
+        label = ctk.CTkLabel(self.tooltip_window,
+                             text=self.message,
+                             justify='left',
+                             fg_color=("#EBEBEB", "#343638"),
+                             text_color=("#1F1F1F", "#EBEBEB"),
+                             corner_radius=6,
+                             padx=8, pady=4,
+                             font=ctk.CTkFont(size=12))
+        label.pack()
+        
+        self.tooltip_window.update_idletasks()
+        
+        width = self.tooltip_window.winfo_width()
+        x -= width // 2
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+
+    def hide_tooltip(self, event):
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
