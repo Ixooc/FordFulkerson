@@ -198,17 +198,17 @@ class FlujoMaximoGrafico:
                 if direction == '+':
                     cap_res = cap_extendida[u][v] - flujo_extendido[u][v]
                     minimo_camino = min(minimo_camino, cap_res)
-                    etiquetas_paso[v] = (f'{etiqueta_padre}+', round(minimo_camino))
+                    etiquetas_paso[v] = (f'{etiqueta_padre}+', int(round(minimo_camino)))
                     if (u < self.n and v < self.n) or u == self.super_fuente or v == self.super_sumidero:
                         camino_visible.append((u, v))
                 else:
                     cap_res = flujo_extendido[v][u] 
                     minimo_camino = min(minimo_camino, cap_res)
-                    etiquetas_paso[v] = (f'{etiqueta_padre}-', round(minimo_camino))
+                    etiquetas_paso[v] = (f'{etiqueta_padre}-', int(round(minimo_camino)))
                     if u < self.n and v < self.n:
                         camino_visible.append((v, u))
 
-            guardar_paso(f'Iteración {iteracion} - Camino encontrado (Delta: {minimo_camino})', camino_visible, etiquetas_paso)
+            guardar_paso(f'Iteración {iteracion} - Camino encontrado (Delta: {int(round(minimo_camino))})', camino_visible, etiquetas_paso)
             
             for u, v, direction in path_reconstruido:
                 if direction == '+': 
@@ -217,10 +217,10 @@ class FlujoMaximoGrafico:
                     flujo_extendido[v][u] -= minimo_camino
             
             total += minimo_camino
-            guardar_paso(f'Iteración {iteracion} - Flujo aplicado (Total: {total:.2f})')
+            guardar_paso(f'Iteración {iteracion} - Flujo aplicado (Total: {int(round(total))})')
             iteracion += 1
             
-        guardar_paso(f'RESULTADO FINAL - Flujo máximo: {total:.2f}')
+        guardar_paso(f'RESULTADO FINAL - Flujo máximo: {int(round(total))}')
         
         visitado = [False] * n_actual
         cola = deque([fuente_calculo]) 
@@ -246,7 +246,7 @@ class FlujoMaximoGrafico:
                     
         pasos.append({
             'tipo': 'corte_minimo', 
-            'titulo': f'CORTE MÍNIMO ({capacidad_corte:.2f}) = Flujo Máximo ({total:.2f})', 
+            'titulo': f'CORTE MÍNIMO ({int(round(capacidad_corte))}) = Flujo Máximo ({int(round(total))})', 
             'conjunto_s': conjunto_s, 
             'aristas_corte': aristas_corte,
             'flujo_maximo': total 

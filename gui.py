@@ -46,7 +46,7 @@ class FordFulkersonGUI:
         self.btn_ver_flujo = None
         self.btn_ver_corte = None
 
-        RESET_ICON_BASE64 = "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"
+        RESET_ICON_BASE64 = "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"
         
         image_data = base64.b64decode(RESET_ICON_BASE64)
         pil_image = Image.open(io.BytesIO(image_data))
@@ -846,6 +846,8 @@ class FordFulkersonGUI:
             else: 
                 node_colors.append(node_color_default); node_sizes.append(800)
 
+        node_size_dict = dict(zip(nodos_a_dibujar, node_sizes))
+
         nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodos_a_dibujar, node_color=node_colors, node_size=node_sizes)
         nx.draw_networkx_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, labels=labels, font_size=10, font_weight='bold', font_color=text_color)
 
@@ -861,7 +863,12 @@ class FordFulkersonGUI:
         
         elif paso_actual.get('tipo') == 'corte_minimo':
             conjunto_s = paso_actual.get('conjunto_s', set())
-            nodos_originales = range(self.grafo_obj.n)
+            
+            nodelist_corte = list(range(self.grafo_obj.n))
+            if self.grafo_obj.super_fuente is not None:
+                nodelist_corte.append(self.grafo_obj.super_fuente)
+            if self.grafo_obj.super_sumidero is not None:
+                nodelist_corte.append(self.grafo_obj.super_sumidero)
 
             aristas_corte_data = paso_actual.get('aristas_corte', []) 
             aristas_corte_pares = set((u, v) for u, v, cap in aristas_corte_data)
@@ -871,8 +878,9 @@ class FordFulkersonGUI:
             edge_colors_corte = ['red' if (u, v) in aristas_corte_pares else edge_color_default for (u, v) in lista_aristas]
             edge_widths_corte = [4 if (u, v) in aristas_corte_pares else 1 for (u, v) in lista_aristas]
             
-            node_colors_corte = [node_color_fuente if i in conjunto_s else node_color_sumidero for i in nodos_originales]
-            node_labels_corte = {i: f"({'S' if i in conjunto_s else 'T'})" for i in nodos_originales}
+            node_colors_corte = [node_color_fuente if i in conjunto_s else node_color_sumidero for i in nodelist_corte]
+            node_sizes_corte = [node_size_dict.get(i, 800) for i in nodelist_corte]
+            node_labels_corte = {i: f"({'S' if i in conjunto_s else 'T'})" for i in nodelist_corte}
             
             pos_vals = self.grafo_obj.pos.values()
             if pos_vals:
@@ -881,7 +889,7 @@ class FordFulkersonGUI:
             else: vertical_offset = 0.2
             pos_labels = {node: (x, y - vertical_offset) for node, (x, y) in self.grafo_obj.pos.items()}
             
-            nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodos_originales, node_color=node_colors_corte, node_size=1000)
+            nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodelist_corte, node_color=node_colors_corte, node_size=node_sizes_corte)
             
             nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', font_color=text_color)
             
