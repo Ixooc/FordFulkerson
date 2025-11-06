@@ -21,7 +21,17 @@ class FordFulkersonGUI:
     def __init__(self, master):
         self.master = master
         self.master.title("Aplicación del teorema de Flujo Máximo - Ford Fulkerson")
-        self.master.geometry("1200x750")
+        
+        window_width = 1200
+        window_height = 750
+        
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        
+        center_x = int(screen_width/2 - window_width / 2)
+        center_y = int(screen_height/2 - window_height / 2)
+        
+        self.master.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         
         self.grafo_obj = None                 
         self.pasos, self.current_step_index = [], 0 
@@ -29,6 +39,7 @@ class FordFulkersonGUI:
         
         self.modo_seleccion = None            
         self.primer_nodo_arista = None
+        self.segundo_nodo_arista = None
 
         self.btn_prev_paso = None
         self.btn_next_paso = None
@@ -153,9 +164,9 @@ class FordFulkersonGUI:
         algo_grid = ctk.CTkFrame(algo_frame, fg_color="transparent")
         algo_grid.pack(fill="x", padx=10, pady=(0,10))
         
-        self.btn_sel_fuentes = ctk.CTkButton(algo_grid, text="Seleccionar Fuentes", command=self.activar_modo_fuente, state='disabled')
+        self.btn_sel_fuentes = ctk.CTkButton(algo_grid, text="Sel. Fuentes", command=self.activar_modo_fuente, state='disabled')
         self.btn_sel_fuentes.pack(fill=tk.X, padx=5, pady=5)
-        self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Seleccoinar Sumideros", command=self.activar_modo_sumidero, state='disabled')
+        self.btn_sel_sumideros = ctk.CTkButton(algo_grid, text="Sel. Sumideros", command=self.activar_modo_sumidero, state='disabled')
         self.btn_sel_sumideros.pack(fill=tk.X, padx=5, pady=(0, 5))
         
         self.btn_ejecutar = ctk.CTkButton(algo_grid, text="Ejecutar Algoritmo", command=self.ejecutar_algoritmo, state='disabled', fg_color="#28A745", hover_color="#218838")
@@ -207,7 +218,7 @@ class FordFulkersonGUI:
 
     def _reset_estado(self):
         self.fuentes, self.sumideros, self.pasos, self.current_step_index = [], [], [], 0
-        self.modo_seleccion, self.primer_nodo_arista = None, None
+        self.modo_seleccion, self.primer_nodo_arista, self.segundo_nodo_arista = None, None, None
         
         is_ready = self.grafo_obj is not None and self.grafo_obj.n > 0
         
@@ -292,10 +303,7 @@ class FordFulkersonGUI:
                 aristas_invertidas += 1
         
         if aristas_invertidas > 0:
-            messagebox.showinfo(
-                "Ajuste Automático",
-                f"Se invirtieron {aristas_invertidas} arista(s) para asegurar la dirección correcta del flujo."
-            )
+            self.show_message_dialog("Ajuste Automático", f"Se invirtieron {aristas_invertidas} arista(s) para asegurar la dirección correcta del flujo.")
 
     def iniciar_modo_manual(self):
         self.slider_nodos.configure(from_=8, to=16)
@@ -318,21 +326,6 @@ class FordFulkersonGUI:
             return
 
         try:
-            with open(filepath, 'r') as f:
-                primera_linea = f.readline()
-                if not primera_linea:
-                    messagebox.showerror("Error de Archivo", "El archivo está vacío.")
-                    return
-                n, m = map(int, primera_linea.strip().split())
-            
-            if not (8 <= n <= 16):
-                messagebox.showerror("Error de Rango de Nodos", f"El número de nodos debe estar entre 8 y 16.\n\nEl archivo seleccionado tiene {n} nodos.")
-                return
-        except Exception as e:
-            messagebox.showerror("Error de Formato", f"No se pudo leer el número de nodos del archivo.\n\nError: {e}")
-            return
-
-        try:
             self.slider_nodos.configure(from_=8, to=16)
             self.grafo_obj = FlujoMaximoGrafico()
             self.grafo_obj.cargar_desde_archivo(filepath)
@@ -346,8 +339,11 @@ class FordFulkersonGUI:
             self.btn_sel_sumideros.configure(state='normal')
             self.btn_ejecutar.configure(state='normal')
             self.status_label.configure(text=f"Grafo cargado desde {filepath.split('/')[-1]}.")
+        except ValueError as e:
+            self.show_message_dialog("Error de Formato de Archivo", str(e))
+            self.reiniciar_aplicacion()
         except Exception as e:
-            messagebox.showerror("Error de Procesamiento", f"No se pudo procesar el archivo de grafo:\n{e}")
+            self.show_message_dialog("Error de Procesamiento", f"No se pudo procesar el archivo de grafo:\n{e}")
             self.reiniciar_aplicacion()
 
     def actualizar_layout_y_dibujar(self):
@@ -374,8 +370,12 @@ class FordFulkersonGUI:
         self.btn_del_arista.configure(state='disabled')
         self.btn_cargar_archivo.configure(state='disabled')
 
+        self.btn_sel_fuentes.configure(state='disabled')
+        self.btn_sel_sumideros.configure(state='disabled')
+
         self.modo_seleccion = None
         self.primer_nodo_arista = None
+        self.segundo_nodo_arista = None
 
     def activar_modo_fuente(self): 
         self._bloquear_edicion()
@@ -390,12 +390,102 @@ class FordFulkersonGUI:
     def activar_modo_add_arista(self): 
         self.modo_seleccion = 'add_edge_1'
         self.primer_nodo_arista = None
+        self.segundo_nodo_arista = None
         self.status_label.configure(text="AÑADIR ARISTA: Haz clic en el nodo de INICIO.")
         
     def activar_modo_del_arista(self): 
         self.modo_seleccion = 'del_edge_1'
         self.primer_nodo_arista = None
+        self.segundo_nodo_arista = None
         self.status_label.configure(text="ELIMINAR ARISTA: Haz clic en el nodo de INICIO.")
+
+    def center_dialog(self, dialog):
+        dialog.update_idletasks()
+        
+        dialog_width = dialog.winfo_width()
+        dialog_height = dialog.winfo_height()
+        
+        master_x = self.master.winfo_x()
+        master_y = self.master.winfo_y()
+        master_width = self.master.winfo_width()
+        master_height = self.master.winfo_height()
+        
+        x = master_x + (master_width // 2) - (dialog_width // 2)
+        y = master_y + (master_height // 2) - (dialog_height // 2)
+        
+        dialog.geometry(f"+{x}+{y}")
+        dialog.transient(self.master)
+        dialog.grab_set()
+
+    def show_message_dialog(self, title, message, parent=None):
+        if parent is None:
+            parent = self.master
+        
+        dialog = ctk.CTkToplevel(parent)
+        dialog.title(title)
+        
+        frame = ctk.CTkFrame(dialog)
+        frame.pack(expand=True, fill="both", padx=20, pady=20)
+        
+        label = ctk.CTkLabel(frame, text=message, wraplength=300, justify="center")
+        label.pack(padx=10, pady=(10, 20))
+        
+        ok_button = ctk.CTkButton(frame, text="Aceptar", command=dialog.destroy, width=100)
+        ok_button.pack(pady=(0, 10))
+        
+        dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+        
+        self.center_dialog(dialog)
+        dialog.wait_window()
+
+    def abrir_dialogo_capacidad_arista(self, u, v):
+        dialog = ctk.CTkToplevel(self.master)
+        dialog.title("Capacidad")
+        
+        self.dialog_result = None
+
+        def on_add():
+            val = entry.get()
+            try:
+                cap = int(val)
+                if cap <= 0:
+                    self.show_message_dialog("Error", "La capacidad debe ser un número entero positivo.", parent=dialog)
+                else:
+                    self.dialog_result = cap
+                    dialog.destroy()
+            except ValueError:
+                self.show_message_dialog("Error", "Entrada inválida. Por favor, ingrese un número entero.", parent=dialog)
+
+        def on_cancel():
+            self.dialog_result = None
+            dialog.destroy()
+        
+        dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+
+        frame = ctk.CTkFrame(dialog)
+        frame.pack(expand=True, fill="both", padx=20, pady=20)
+        
+        label = ctk.CTkLabel(frame, text=f"Capacidad para arista {u}->{v}:")
+        label.pack(padx=10, pady=(10, 5))
+        
+        entry = ctk.CTkEntry(frame)
+        entry.pack(padx=10, pady=(0, 15), fill="x")
+        entry.bind("<Return>", lambda event: on_add())
+        
+        button_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        button_frame.pack(fill="x", padx=10, pady=(0, 10))
+        
+        btn_cancel = ctk.CTkButton(button_frame, text="Cancelar", command=on_cancel, fg_color=("#D9534F", "#555555"), text_color=("#FFFFFF", "#EBEBEB"), hover_color=("#C9302C", "#666666"))
+        btn_cancel.pack(side="right", padx=5)
+
+        btn_add = ctk.CTkButton(button_frame, text="Añadir", command=on_add, fg_color="#28A745", hover_color="#218838")
+        btn_add.pack(side="right", padx=5)
+        
+        entry.focus_set()
+        
+        self.center_dialog(dialog)
+        self.master.wait_window(dialog)
+        return self.dialog_result
 
     def on_click(self, event):
         if not event.inaxes or not self.grafo_obj or not self.grafo_obj.pos: 
@@ -434,28 +524,41 @@ class FordFulkersonGUI:
             else: 
                 self.modo_seleccion = 'del_edge_2'
                 self.status_label.configure(text=f"ELIMINAR ARISTA: Inicio en {nodo_cercano}. Clic en FIN.")
+            self.dibujar_grafo()
                 
         elif self.modo_seleccion in ['add_edge_2', 'del_edge_2']:
             if nodo_cercano >= self.grafo_obj.n: return
-            u, v = self.primer_nodo_arista, nodo_cercano
             
+            u = self.primer_nodo_arista
+            v = nodo_cercano
+            
+            self.segundo_nodo_arista = v
+            self.dibujar_grafo()
+
             if u != v:
                 if self.modo_seleccion == 'add_edge_2':
-                    cap = askinteger("Capacidad", f"Capacidad para arista {u}->{v}:", parent=self.master, minvalue=1)
-                    if cap is not None: 
-                        self.grafo_obj.agregar_arista(u, v, cap)
-                        self.dibujar_grafo()
+                    if self.grafo_obj.grafo_nx.has_edge(v, u):
+                        self.show_message_dialog("Arista bidireccional no permitida", f"La arista {v}->{u} ya existe.\nNo se puede crear la arista {u}->{v}.", parent=self.master)
+                    else:
+                        cap = self.abrir_dialogo_capacidad_arista(u, v)
+                        if cap is not None: 
+                            self.grafo_obj.agregar_arista(u, v, cap)
+                
                 elif self.modo_seleccion == 'del_edge_2':
                     if self.grafo_obj.grafo_nx.has_edge(u,v): 
                         self.grafo_obj.remover_arista(u,v)
-                        self.dibujar_grafo()
                     else: 
                         self.status_label.configure(text=f"ERROR: No existe arista de {u} a {v}.")
-                        
-            if self.modo_seleccion == 'add_edge_2': 
+
+            self.primer_nodo_arista = None
+            self.segundo_nodo_arista = None
+
+            if self.modo_seleccion == 'add_edge_2':
                 self.activar_modo_add_arista()
-            else: 
+            else:
                 self.activar_modo_del_arista()
+                
+            self.dibujar_grafo()
 
     def on_key_press(self, event):
         if not self.pasos: 
@@ -499,14 +602,14 @@ class FordFulkersonGUI:
 
     def ejecutar_algoritmo(self):
         if not self.grafo_obj or not self.grafo_obj.grafo_nx.nodes(): 
-            messagebox.showerror("Error", "Primero debe generar un grafo.")
+            self.show_message_dialog("Error", "Primero debe generar un grafo.")
             return
 
         nodos_originales = range(self.grafo_obj.n)
         subgrafo_original = self.grafo_obj.grafo_nx.subgraph(nodos_originales)
         
         if self.grafo_obj.n > 0 and not nx.is_weakly_connected(subgrafo_original):
-            messagebox.showerror("Error de Grafo", "El grafo no está conectado.")
+            self.show_message_dialog("Error de Grafo", "El grafo no está conectado.")
             self.fuentes, self.sumideros = [], []
             self._reset_estado()
             self.grafo_obj.pos = nx.circular_layout(self.grafo_obj.grafo_nx)
@@ -514,7 +617,7 @@ class FordFulkersonGUI:
             self.status_label.configure(text="Error: Grafo no conectado. Se reinició la selección.")
             return
         if not self.fuentes or not self.sumideros: 
-            messagebox.showerror("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero.")
+            self.show_message_dialog("Error de Selección", "Debes seleccionar al menos una fuente y un sumidero.")
             return
         
         self.validar_y_corregir_direccion_flujo()
@@ -556,8 +659,8 @@ class FordFulkersonGUI:
                 
         ctk.CTkButton(frame, text="Confirmar y Ejecutar", command=self.ejecutar_con_capacidades).pack(pady=20)
         
-        self.dialog.transient(self.master)
-        self.dialog.grab_set()
+        self.center_dialog(self.dialog)
+        
         self.master.wait_window(self.dialog)
 
     def ejecutar_con_capacidades(self):
@@ -568,18 +671,40 @@ class FordFulkersonGUI:
                 for f in self.fuentes:
                     if f in self.entry_capacidades:
                         val = self.entry_capacidades[f].get()
-                        cap_fuentes[f] = int(val) if val.strip() else float('inf') 
+                        if val.strip():
+                            cap = int(val)
+                            if cap <= 0:
+                                raise ValueError(f"La capacidad para la fuente {f} debe ser positiva.")
+                            cap_fuentes[f] = cap
+                        else:
+                            cap_fuentes[f] = float('inf') 
                 for s in self.sumideros:
                     if s in self.entry_capacidades:
                         val = self.entry_capacidades[s].get()
-                        cap_sumideros[s] = int(val) if val.strip() else float('inf')
+                        if val.strip():
+                            cap = int(val)
+                            if cap <= 0:
+                                raise ValueError(f"La capacidad para el sumidero {s} debe ser positiva.")
+                            cap_sumideros[s] = cap
+                        else:
+                            cap_sumideros[s] = float('inf')
                 self.dialog.destroy()
-        except ValueError: 
-            messagebox.showerror("Error de Entrada", "Por favor, ingrese solo números enteros.", parent=self.dialog)
+        except ValueError as e: 
+            msg = str(e)
+            if "invalid literal" in msg:
+                msg = "Por favor, ingrese solo números enteros."
+            self.show_message_dialog("Error de Entrada", msg, parent=self.dialog if hasattr(self, 'dialog') else self.master)
             return
             
         self.status_label.configure(text="Limpiando y calculando...")
-        self.grafo_obj.remover_aristas_internas(self.fuentes, self.sumideros)
+        
+        aristas_eliminadas = self.grafo_obj.remover_aristas_internas(self.fuentes, self.sumideros)
+        if aristas_eliminadas:
+            msg = (f"Se eliminaron {len(aristas_eliminadas)} arista(s) internas "
+                   "para evitar ciclos entre fuentes o sumideros:\n\n" +
+                   ", ".join([f"({u}→{v})" for u, v in aristas_eliminadas]))
+            self.show_message_dialog("Ajuste Automático", msg)
+
         self.grafo_obj.preparar_para_multifuente(self.fuentes, self.sumideros, cap_fuentes, cap_sumideros)
         self.actualizar_layout_y_dibujar()
         
@@ -598,11 +723,27 @@ class FordFulkersonGUI:
             self.modo_seleccion = None
             self.fuentes = []
             self.sumideros = []
+            self.primer_nodo_arista = None
+            self.segundo_nodo_arista = None
             self._reset_estado()
             self.actualizar_layout_y_dibujar()
             self.status_label.configure(text="Selección cancelada. Elija una acción.")
+        
+        elif self.pasos:
+            self.pasos = []
+            self.current_step_index = 0
+            self.fuentes = []
+            self.sumideros = []
+            self.primer_nodo_arista = None
+            self.segundo_nodo_arista = None
+            self._reset_estado()
+            self.actualizar_layout_y_dibujar()
+            self.status_label.configure(text="Grafo listo. Selecciona nuevas fuentes y sumideros.")
+
         else:
             self.grafo_obj = None
+            self.primer_nodo_arista = None
+            self.segundo_nodo_arista = None
             self._reset_estado()
             self.status_label.configure(text="Bienvenido. Genere un grafo para comenzar.")
             self.dibujar_grafo()
@@ -686,6 +827,9 @@ class FordFulkersonGUI:
                 node_colors.append(node_color_fuente); node_sizes.append(1000)
             elif nodo in self.sumideros: 
                 node_colors.append(node_color_sumidero); node_sizes.append(1000)
+            elif nodo == self.primer_nodo_arista or nodo == self.segundo_nodo_arista:
+                node_colors.append('yellow')
+                node_sizes.append(1000)
             elif paso_idx is not None and nodo in nodos_camino_set: 
                 node_colors.append('yellow'); node_sizes.append(800)
             else: 
@@ -811,7 +955,7 @@ class FordFulkersonGUI:
                 formatted_labels = {node: f"({parent}, {delta})" for node, (parent, delta) in etiquetas_camino.items()}
                 
                 nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_node_labels, labels=formatted_labels, 
-                                        font_size=9, font_color='purple', font_weight='bold', ax=self.ax)
+                                        font_size=9, font_color=text_color, font_weight='bold', ax=self.ax)
 
             legend_elements = [
                 plt.Line2D([0], [0], color=edge_color_camino, lw=4, label='Camino de Aumento (Adelante)'),
@@ -827,6 +971,7 @@ class FordFulkersonGUI:
         if paso_actual.get('tipo') != 'corte_minimo':
             nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=node_sizes)
 
+            dynamic_labels = {}
             for (u, v), label in edge_labels.items():
                 if u not in self.grafo_obj.pos or v not in self.grafo_obj.pos: continue
                 pos_u = self.grafo_obj.pos[u]
@@ -836,13 +981,15 @@ class FordFulkersonGUI:
                 k = 0.3
                 dynamic_label_pos = k / length if length > 0 else 0.3
                 dynamic_label_pos = max(0.1, min(0.4, dynamic_label_pos)) 
+                dynamic_labels[(u,v)] = (label, dynamic_label_pos)
 
-                nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
+            for (u, v), (label, pos) in dynamic_labels.items():
+                 nx.draw_networkx_edge_labels(self.grafo_obj.grafo_nx, self.grafo_obj.pos, 
                                               edge_labels={(u,v): label}, 
                                               ax=self.ax, font_size=7, 
                                               bbox=dict(facecolor=bg_color, alpha=0.7, edgecolor='none', pad=0.1), 
                                               font_color=text_color, 
-                                              label_pos=dynamic_label_pos)
+                                              label_pos=pos)
             
         self.ax.axis('off')
         self.canvas.draw()
@@ -852,20 +999,32 @@ class FordFulkersonGUI:
 
 
 class CTkToolTip:
-    def __init__(self, widget, message):
+    def __init__(self, widget, message, delay=500):
         self.widget = widget
         self.message = message
+        self.delay = delay
         self.tooltip_window = None
-        self.widget.bind("<Enter>", self.show_tooltip)
-        self.widget.bind("<Leave>", self.hide_tooltip)
+        self.show_timer = None
+        self.hide_timer = None
 
-    def show_tooltip(self, event):
+        self.widget.bind("<Enter>", self.schedule_show, add="+")
+        self.widget.bind("<Leave>", self.schedule_hide, add="+")
+        self.widget.bind("<Button-1>", self.hide_tooltip_click, add="+")
+
+    def schedule_show(self, event=None):
+        self.cancel_hide()
+        if self.tooltip_window:
+            return
+        if not self.show_timer:
+            self.show_timer = self.widget.after(self.delay, lambda: self.show_tooltip(event))
+
+    def show_tooltip(self, event=None):
         if self.tooltip_window:
             return
         
-        x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
-        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
-        
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() + 10
+        y = self.widget.winfo_rooty() 
+
         self.tooltip_window = ctk.CTkToplevel(self.widget)
         self.tooltip_window.wm_overrideredirect(True)
         self.tooltip_window.wm_geometry(f"+{x}+{y}")
@@ -876,17 +1035,37 @@ class CTkToolTip:
                              fg_color=("#EBEBEB", "#343638"),
                              text_color=("#1F1F1F", "#EBEBEB"),
                              corner_radius=6,
-                             padx=8, pady=4,
+                             padx=10, pady=8,
                              font=ctk.CTkFont(size=12))
         label.pack()
-        
-        self.tooltip_window.update_idletasks()
-        
-        width = self.tooltip_window.winfo_width()
-        x -= width // 2
-        self.tooltip_window.wm_geometry(f"+{x}+{y}")
 
-    def hide_tooltip(self, event):
+        self.tooltip_window.bind("<Enter>", lambda e: self.cancel_hide())
+        self.tooltip_window.bind("<Leave>", lambda e: self.schedule_hide())
+
+    def schedule_hide(self, event=None):
+        self.cancel_show()
+        if not self.hide_timer:
+            self.hide_timer = self.widget.after(100, self.hide_tooltip)
+
+    def hide_tooltip(self):
         if self.tooltip_window:
             self.tooltip_window.destroy()
             self.tooltip_window = None
+        self.cancel_timers()
+
+    def hide_tooltip_click(self, event=None):
+        self.hide_tooltip()
+
+    def cancel_show(self):
+        if self.show_timer:
+            self.widget.after_cancel(self.show_timer)
+            self.show_timer = None
+
+    def cancel_hide(self):
+        if self.hide_timer:
+            self.widget.after_cancel(self.hide_timer)
+            self.hide_timer = None
+
+    def cancel_timers(self):
+        self.cancel_show()
+        self.cancel_hide()
