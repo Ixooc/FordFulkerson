@@ -176,11 +176,11 @@ class FordFulkersonGUI:
         status_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=0, padx=0)
         status_frame.pack_propagate(False)
 
-        self.btn_reiniciar = ctk.CTkButton(status_frame, image=self.reset_icon_image, text="", command=self.reiniciar_aplicacion, state='disabled', width=40, height=40)
-        self.btn_reiniciar.pack(side=tk.RIGHT, padx=10, pady=20)
+        self.btn_reiniciar = ctk.CTkButton(status_frame, text="Reiniciar", command=self.reiniciar_aplicacion, state='disabled', width=90, height=32, fg_color=("#E57373", "#C62828"), hover_color=("#EF5350", "#B71C1C"))
+        self.btn_reiniciar.pack(side=tk.RIGHT, padx=10, pady=24)
         
-        self.status_label = ctk.CTkLabel(status_frame, text="Bienvenido.", anchor="w", wraplength=190, justify="left")
-        self.status_label.pack(side=tk.LEFT, padx=15, pady=10, fill="x")
+        self.status_label = ctk.CTkLabel(status_frame, text="Bienvenido.", anchor="w", wraplength=140, justify="left")
+        self.status_label.pack(side=tk.LEFT, padx=15, pady=10, fill="both", expand=True)
 
 
     def crear_lienzo_grafico(self, parent):
