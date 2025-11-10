@@ -10,12 +10,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import math
 from PIL import Image
-import io
-import base64
-##
 import os
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-##
 from logic import FlujoMaximoGrafico
 from layout import layout_final_por_zonas
 
@@ -48,16 +44,8 @@ class FordFulkersonGUI:
         self.btn_next_paso = None
         self.btn_ver_flujo = None
         self.btn_ver_corte = None
-
-        RESET_ICON_BASE64 = "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"
-        
-        image_data = base64.b64decode(RESET_ICON_BASE64)
-        pil_image = Image.open(io.BytesIO(image_data))
-        
-        self.reset_icon_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(16, 16))
         
         ctk.set_default_color_theme("blue")
-        ##
         script_dir = os.path.dirname(os.path.abspath(__file__))
         image_path = os.path.join(script_dir, 'almacen.png')
         try:
@@ -69,7 +57,7 @@ class FordFulkersonGUI:
             self.imagen_super = plt.imread(super_image_path)
         except Exception as e:
             self.imagen_super = None
-        ##
+        
         self.crear_layout_principal()
 
     def crear_layout_principal(self):
@@ -794,11 +782,12 @@ class FordFulkersonGUI:
             node_color_default = accent_color 
             node_color_fuente = '#28A745'  
             node_color_sumidero = '#DC3545' 
+            node_color_highlight = '#FFC107' 
             edge_color_default = 'gray'
             edge_color_flujo = accent_color    
             edge_color_saturada = '#BD0000' 
             edge_color_camino = '#17A2B8'  
-            edge_color_camino_atras = '#FFC107' 
+            edge_color_camino_atras = node_color_highlight 
             
         except Exception:
             bg_color = 'white'
@@ -806,6 +795,7 @@ class FordFulkersonGUI:
             node_color_default = 'lightblue'
             node_color_fuente = 'lightgreen'
             node_color_sumidero = 'lightcoral'
+            node_color_highlight = 'yellow'
             edge_color_default = 'gray'
             edge_color_flujo = 'blue'
             edge_color_saturada = 'darkred'
@@ -837,86 +827,94 @@ class FordFulkersonGUI:
 
         self.ax.set_title(titulo, fontsize=14, color=text_color)
 
+        
+        
+        conjunto_s = paso_actual.get('conjunto_s', set()) if paso_actual.get('tipo') == 'corte_minimo' else set()
         camino = paso_actual.get('camino', [])
         nodos_camino_set = {n for a in camino for n in a}
+        nodos_resaltados = nodos_camino_set.union({self.primer_nodo_arista, self.segundo_nodo_arista})
+
+        node_colors_map = {}
+        node_sizes_map = {}
+        labels_map = {}
         
-        node_colors, node_sizes, labels = [], [], {}
         nodos_a_dibujar = list(self.grafo_obj.grafo_nx.nodes())
+        
+        nodos_especiales = set(self.fuentes + self.sumideros + [self.grafo_obj.super_fuente, self.grafo_obj.super_sumidero])
+        if None in nodos_especiales:
+            nodos_especiales.remove(None)
+
 
         for nodo in nodos_a_dibujar:
-            labels[nodo] = str(nodo)
-            if nodo in self.fuentes: 
-                node_colors.append(node_color_fuente); node_sizes.append(1000)
-            elif nodo in self.sumideros: 
-                node_colors.append(node_color_sumidero); node_sizes.append(1000)
-            elif nodo == self.primer_nodo_arista or nodo == self.segundo_nodo_arista:
-                node_colors.append('yellow')
-                node_sizes.append(1000)
-            elif paso_idx is not None and nodo in nodos_camino_set: 
-                node_colors.append('yellow'); node_sizes.append(800)
-            else: 
-                node_colors.append(node_color_default); node_sizes.append(800)
-
-        node_size_dict = dict(zip(nodos_a_dibujar, node_sizes))
-        ## 
-        nodos_normales = [n for n in nodos_a_dibujar 
-                if n not in self.fuentes 
-                and n not in self.sumideros
-                and n != self.grafo_obj.super_fuente
-                and n != self.grafo_obj.super_sumidero]
-
-        colores_normales = []
-        tamanos_normales = []
-        for n in nodos_normales:
-            if n == self.primer_nodo_arista or n == self.segundo_nodo_arista:
-                colores_normales.append('yellow')
-                tamanos_normales.append(1000)
-            elif paso_idx is not None and n in nodos_camino_set:
-                colores_normales.append('yellow')
-                tamanos_normales.append(800)
+            labels_map[nodo] = str(nodo)
+            
+            
+            if nodo == self.grafo_obj.super_fuente or nodo == self.grafo_obj.super_sumidero:
+                node_sizes_map[nodo] = 1200
+            elif nodo in self.fuentes or nodo in self.sumideros:
+                node_sizes_map[nodo] = 1000
             else:
-                colores_normales.append(node_color_default)
-                tamanos_normales.append(800)
+                node_sizes_map[nodo] = 800
+            
+            
+            color = None
 
-        if nodos_normales:
-            nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
-                                nodelist=nodos_normales,
-                                node_color=colores_normales,
-                                node_size=tamanos_normales,
-                                ax=self.ax)
+            if paso_actual.get('tipo') == 'corte_minimo':
+                if nodo in conjunto_s:
+                    color = node_color_fuente
+                else:
+                    color = node_color_sumidero
+            
+            else:
+                if nodo not in nodos_especiales:
+                    if nodo in nodos_resaltados:
+                        color = node_color_highlight
+                    else:
+                        color = node_color_default
+                
+                else: 
+                    if nodo == self.grafo_obj.super_fuente:
+                        color = 'gold'
+                    elif nodo == self.grafo_obj.super_sumidero:
+                        color = 'dimgray'
+                    elif nodo in self.fuentes:
+                        color = node_color_fuente
+                    elif nodo in self.sumideros:
+                        color = node_color_sumidero
+                    else:
+                        color = node_color_default
+            
+            node_colors_map[nodo] = color
 
-        # --- Fuentes y sumideros: dibujar como imagen o círculo ---
-        nodos_especiales = self.fuentes + self.sumideros
-        if self.imagen_fuente is not None and nodos_especiales:
-            for nodo in nodos_especiales:
+        
+        nodelist = nodos_a_dibujar
+        final_node_colors = [node_colors_map[n] for n in nodelist]
+        final_node_sizes = [node_sizes_map[n] for n in nodelist]
+
+        nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
+                                nodelist=nodelist,
+                                node_color=final_node_colors,
+                                node_size=final_node_sizes,
+                                ax=self.ax) 
+
+        
+        
+        nodos_con_imagen_fuente = self.fuentes + self.sumideros
+        if self.imagen_fuente is not None and nodos_con_imagen_fuente:
+            for nodo in nodos_con_imagen_fuente:
                 if nodo in self.grafo_obj.pos:
                     x, y = self.grafo_obj.pos[nodo]
                     imagebox = OffsetImage(self.imagen_fuente, zoom=0.09)
                     ab = AnnotationBbox(imagebox, (x, y), frameon=False, zorder=5)
                     self.ax.add_artist(ab)
-        else:
-            # Si no hay imagen, dibujar como círculos (comportamiento original)
-            for nodo in self.fuentes:
-                nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
-                                    nodelist=[nodo],
-                                    node_color=node_color_fuente,
-                                    node_size=1000,
-                                    ax=self.ax)
-            for nodo in self.sumideros:
-                nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
-                                    nodelist=[nodo],
-                                    node_color=node_color_sumidero,
-                                    node_size=1000,
-                                    ax=self.ax)
 
-        # --- Super fuente y super sumidero ---
         super_nodos = []
         if self.grafo_obj.super_fuente is not None:
             super_nodos.append(self.grafo_obj.super_fuente)
-            labels[self.grafo_obj.super_fuente] = 'S*'
+            labels_map[self.grafo_obj.super_fuente] = 'S*'
         if self.grafo_obj.super_sumidero is not None:
             super_nodos.append(self.grafo_obj.super_sumidero)
-            labels[self.grafo_obj.super_sumidero] = 'T*'
+            labels_map[self.grafo_obj.super_sumidero] = 'T*'
 
         if self.imagen_super is not None and super_nodos:
             for nodo in super_nodos:
@@ -925,50 +923,102 @@ class FordFulkersonGUI:
                     imagebox = OffsetImage(self.imagen_super, zoom=0.09)
                     ab = AnnotationBbox(imagebox, (x, y), frameon=False, zorder=6)
                     self.ax.add_artist(ab)
-            # Eliminar etiquetas S*/T* si usamos imagen
-            for n in super_nodos:
-                if n in labels:
-                    del labels[n]
-        else:
-            # Fallback: dibujar como círculos
-            if self.grafo_obj.super_fuente is not None:
-                nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
-                                    nodelist=[self.grafo_obj.super_fuente],
-                                    node_color='gold', node_size=1200, ax=self.ax)
-            if self.grafo_obj.super_sumidero is not None:
-                nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos,
-                                    nodelist=[self.grafo_obj.super_sumidero],
-                                    node_color='dimgray', node_size=1200, ax=self.ax)
-        ##
-        ##
+        
+        
         pos_labels = self.grafo_obj.pos.copy()
-        if self.imagen_fuente is not None and (self.fuentes or self.sumideros):
-            # Calcular offset horizontal (ajusta según el tamaño de la imagen)
+        
+        fuentes_con_imagen = self.fuentes if self.imagen_fuente is not None else []
+        sumideros_con_imagen = self.sumideros if self.imagen_fuente is not None else []
+        super_fuente_con_imagen = [self.grafo_obj.super_fuente] if self.imagen_super is not None and self.grafo_obj.super_fuente is not None else []
+        super_sumidero_con_imagen = [self.grafo_obj.super_sumidero] if self.imagen_super is not None and self.grafo_obj.super_sumidero is not None else []
+
+        nodos_shift_left = fuentes_con_imagen + super_fuente_con_imagen
+        nodos_shift_right = sumideros_con_imagen + super_sumidero_con_imagen
+
+        if nodos_shift_left or nodos_shift_right:
             pos_vals = list(self.grafo_obj.pos.values())
             if pos_vals:
                 x_coords = [x for x, y in pos_vals]
                 graph_width = max(x_coords) - min(x_coords) if x_coords else 1
-                offset_h = graph_width * 0.04 if graph_width != 0 else 0.15
+                offset_h_normal = graph_width * 0.04 if graph_width != 0 else 0.15
+                offset_h_super = graph_width * 0.08 if graph_width != 0 else 0.30
             else:
-                offset_h = 0.15
+                offset_h_normal = 0.15
+                offset_h_super = 0.30
 
-            # Fuentes: etiqueta a la IZQUIERDA
-            for nodo in self.fuentes:
-                if nodo in pos_labels:
-                    x, y = pos_labels[nodo]
-                    pos_labels[nodo] = (x - offset_h, y)
+            nodos_normal_left = [n for n in fuentes_con_imagen if n in pos_labels]
+            nodos_normal_right = [n for n in sumideros_con_imagen if n in pos_labels]
 
-            # Sumideros: etiqueta a la DERECHA
-            for nodo in self.sumideros:
-                if nodo in pos_labels:
-                    x, y = pos_labels[nodo]
-                    pos_labels[nodo] = (x + offset_h, y)
+            for nodo in nodos_normal_left:
+                x, y = pos_labels[nodo]
+                pos_labels[nodo] = (x - offset_h_normal, y)
 
-        ##            
-        nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
-                                labels=labels, font_size=10, font_weight='bold', font_color=text_color)
-        ##
+            for nodo in nodos_normal_right:
+                x, y = pos_labels[nodo]
+                pos_labels[nodo] = (x + offset_h_normal, y)
+            
+            nodos_super_left = [n for n in super_fuente_con_imagen if n in pos_labels]
+            nodos_super_right = [n for n in super_sumidero_con_imagen if n in pos_labels]
 
+            for nodo in nodos_super_left:
+                x, y = pos_labels[nodo]
+                pos_labels[nodo] = (x - offset_h_super, y)
+
+            for nodo in nodos_super_right:
+                x, y = pos_labels[nodo]
+                pos_labels[nodo] = (x + offset_h_super, y)
+        
+        
+        if paso_actual.get('tipo') == 'corte_minimo':
+            labels_s_special = {}
+            labels_t_special = {}
+            labels_normal = {}
+            
+            for nodo, texto in labels_map.items():
+                if nodo in nodos_especiales:
+                    if nodo in conjunto_s:
+                        labels_s_special[nodo] = texto
+                    else:
+                        labels_t_special[nodo] = texto
+                else:
+                    labels_normal[nodo] = texto
+            
+            texts_normal = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
+                                                   labels=labels_normal, font_size=10, font_weight='bold', 
+                                                   font_color=text_color)
+            for text in texts_normal.values(): text.set_zorder(10)
+            
+            texts_s = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
+                                              labels=labels_s_special, font_size=10, font_weight='bold', 
+                                              font_color=node_color_fuente) 
+            for text in texts_s.values(): text.set_zorder(10)
+
+            texts_t = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
+                                              labels=labels_t_special, font_size=10, font_weight='bold', 
+                                              font_color=node_color_sumidero)
+            for text in texts_t.values(): text.set_zorder(10)
+        
+        else:
+            highlight_labels = {}
+            normal_labels = {}
+
+            for nodo, texto in labels_map.items():
+                if nodo in nodos_resaltados and nodo in nodos_especiales:
+                    highlight_labels[nodo] = texto
+                else:
+                    normal_labels[nodo] = texto
+            
+            texts_normal_else = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
+                                                        labels=normal_labels, font_size=10, font_weight='bold', 
+                                                        font_color=text_color)
+            for text in texts_normal_else.values(): text.set_zorder(10)
+                                    
+            texts_highlight = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax,
+                                                      labels=highlight_labels, font_size=10, font_weight='bold', 
+                                                      font_color=node_color_highlight)
+            for text in texts_highlight.values(): text.set_zorder(10)
+        
+        
         edge_labels, edge_colors, edge_widths = {}, [], []
         
         if paso_idx is None: 
@@ -980,24 +1030,8 @@ class FordFulkersonGUI:
             edge_widths = [1.5] * self.grafo_obj.grafo_nx.number_of_edges()
         
         elif paso_actual.get('tipo') == 'corte_minimo':
-            conjunto_s = paso_actual.get('conjunto_s', set())
             
-            nodelist_corte = list(range(self.grafo_obj.n))
-            if self.grafo_obj.super_fuente is not None:
-                nodelist_corte.append(self.grafo_obj.super_fuente)
-            if self.grafo_obj.super_sumidero is not None:
-                nodelist_corte.append(self.grafo_obj.super_sumidero)
-
-            aristas_corte_data = paso_actual.get('aristas_corte', []) 
-            aristas_corte_pares = set((u, v) for u, v, cap in aristas_corte_data)
-            
-            lista_aristas = list(self.grafo_obj.grafo_nx.edges())
-
-            edge_colors_corte = ['red' if (u, v) in aristas_corte_pares else edge_color_default for (u, v) in lista_aristas]
-            edge_widths_corte = [4 if (u, v) in aristas_corte_pares else 1 for (u, v) in lista_aristas]
-            
-            node_colors_corte = [node_color_fuente if i in conjunto_s else node_color_sumidero for i in nodelist_corte]
-            node_sizes_corte = [node_size_dict.get(i, 800) for i in nodelist_corte]
+            nodelist_corte = list(self.grafo_obj.grafo_nx.nodes())
             node_labels_corte = {i: f"({'S' if i in conjunto_s else 'T'})" for i in nodelist_corte}
             
             pos_vals = self.grafo_obj.pos.values()
@@ -1005,11 +1039,22 @@ class FordFulkersonGUI:
                 y_coords = [y for x, y in pos_vals]; graph_height = max(y_coords) - min(y_coords)
                 vertical_offset = graph_height * 0.05 if graph_height != 0 else 0.2
             else: vertical_offset = 0.2
-            pos_labels = {node: (x, y - vertical_offset) for node, (x, y) in self.grafo_obj.pos.items()}
             
-            nx.draw_networkx_nodes(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, nodelist=nodelist_corte, node_color=node_colors_corte, node_size=node_sizes_corte)
+            vertical_offset_multiplier = 1.0
+            if self.imagen_fuente is not None:
+                vertical_offset_multiplier = 1.4
+                
+            pos_labels_corte = {node: (x, y - vertical_offset * vertical_offset_multiplier) for node, (x, y) in self.grafo_obj.pos.items()}
             
-            nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', font_color=text_color)
+            texts_corte_labels = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_labels_corte, ax=self.ax, labels=node_labels_corte, font_size=9, font_weight='bold', font_color=text_color)
+            for text in texts_corte_labels.values(): text.set_zorder(10)
+
+            aristas_corte_data = paso_actual.get('aristas_corte', []) 
+            aristas_corte_pares = set((u, v) for u, v, cap in aristas_corte_data)
+            lista_aristas = list(self.grafo_obj.grafo_nx.edges())
+
+            edge_colors_corte = ['red' if (u, v) in aristas_corte_pares else edge_color_default for (u, v) in lista_aristas]
+            edge_widths_corte = [4 if (u, v) in aristas_corte_pares else 1 for (u, v) in lista_aristas]
             
             edge_labels_corte = {}
             for u, v, cap in aristas_corte_data:
@@ -1024,7 +1069,7 @@ class FordFulkersonGUI:
                                 width=edge_widths_corte, 
                                 arrows=True, 
                                 arrowsize=20, 
-                                node_size=1000)
+                                node_size=final_node_sizes) 
             
             for (u, v), label in edge_labels_corte.items():
                 if u not in self.grafo_obj.pos or v not in self.grafo_obj.pos: continue
@@ -1091,8 +1136,9 @@ class FordFulkersonGUI:
                 pos_node_labels = {node: (x, y + vertical_offset) for node, (x, y) in self.grafo_obj.pos.items()}
                 formatted_labels = {node: f"({parent}, {delta})" for node, (parent, delta) in etiquetas_camino.items()}
                 
-                nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_node_labels, labels=formatted_labels, 
-                                        font_size=9, font_color=text_color, font_weight='bold', ax=self.ax)
+                texts_path = nx.draw_networkx_labels(self.grafo_obj.grafo_nx, pos_node_labels, labels=formatted_labels, 
+                                                font_size=9, font_color=text_color, font_weight='bold', ax=self.ax)
+                for text in texts_path.values(): text.set_zorder(10)
 
             legend_elements = [
                 plt.Line2D([0], [0], color=edge_color_camino, lw=4, label='Camino de Aumento (Adelante)'),
@@ -1100,13 +1146,18 @@ class FordFulkersonGUI:
                 plt.Line2D([0], [0], color=edge_color_saturada, lw=3, label='Arista Saturada (Flujo = Cap.)'),
                 plt.Line2D([0], [0], color=edge_color_flujo, lw=3, label='Arista con Flujo'),
                 plt.Line2D([0], [0], color=edge_color_default, lw=1.5, label='Arista sin Flujo'),
-                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='yellow', markersize=10, label='Nodo en Camino Actual')
+                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=node_color_highlight, markersize=10, label='Nodo en Camino Actual')
             ]
+
             leg = self.ax.legend(handles=legend_elements, loc='upper right', fontsize='small', shadow=True, facecolor=legend_facecolor, edgecolor=legend_edgecolor, bbox_to_anchor=(1, 1.05))
-            for text in leg.get_texts(): text.set_color(text_color) 
+            
+            for text in leg.get_texts():
+                text.set_color(text_color)
+                if "Nodo en Camino Actual" in text.get_text():
+                    text.set_color(node_color_highlight) 
 
         if paso_actual.get('tipo') != 'corte_minimo':
-            nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=node_sizes)
+            nx.draw_networkx_edges(self.grafo_obj.grafo_nx, self.grafo_obj.pos, ax=self.ax, edgelist=list(self.grafo_obj.grafo_nx.edges()), edge_color=edge_colors, width=edge_widths, arrows=True, arrowsize=20, node_size=final_node_sizes)
 
             dynamic_labels = {}
             for (u, v), label in edge_labels.items():
@@ -1167,13 +1218,13 @@ class CTkToolTip:
         self.tooltip_window.wm_geometry(f"+{x}+{y}")
         
         label = ctk.CTkLabel(self.tooltip_window,
-                            text=self.message,
-                            justify='left',
-                            fg_color=("#EBEBEB", "#343638"),
-                            text_color=("#1F1F1F", "#EBEBEB"),
-                            corner_radius=6,
-                            padx=10, pady=8,
-                            font=ctk.CTkFont(size=12))
+                             text=self.message,
+                             justify='left',
+                             fg_color=("#EBEBEB", "#343638"),
+                             text_color=("#1F1F1F", "#EBEBEB"),
+                             corner_radius=6,
+                             padx=10, pady=8,
+                             font=ctk.CTkFont(size=12))
         label.pack()
 
         self.tooltip_window.bind("<Enter>", lambda e: self.cancel_hide())

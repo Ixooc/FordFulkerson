@@ -205,8 +205,9 @@ class FlujoMaximoGrafico:
                     cap_res = flujo_extendido[v][u] 
                     minimo_camino = min(minimo_camino, cap_res)
                     etiquetas_paso[v] = (f'{etiqueta_padre}-', int(round(minimo_camino)))
-                    if u < self.n and v < self.n:
-                        camino_visible.append((v, u))
+                    
+                    if (u < self.n and v < self.n) or u == self.super_fuente or v == self.super_sumidero or v == self.super_fuente:
+                        camino_visible.append((u, v))
 
             guardar_paso(f'Iteración {iteracion} - Camino encontrado (Delta: {int(round(minimo_camino))})', camino_visible, etiquetas_paso)
             

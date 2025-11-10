@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from gui import FordFulkersonGUI
-import matplotlib.pyplot as plt  # <-- 1. Importa matplotlib.pyplot
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("Dark")  
